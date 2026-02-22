@@ -93,7 +93,7 @@
 
 - name: Display connectivity status for control plane nodes
   ansible.builtin.debug:
-    msg: "Control plane nodes connectivity check (port 50000): {{ cp_connectivity.results | map(attribute='state') | list }}"
+    msg: "Control plane nodes connectivity (port 50000): {% for result in cp_connectivity.results %}{{ result.item }}: {{ 'OK' if not result.failed else 'UNREACHABLE' }}{{ ', ' if not loop.last else '' }}{% endfor %}"
 
 - name: Test connectivity to worker nodes
   ansible.builtin.wait_for:
@@ -108,7 +108,7 @@
 
 - name: Display connectivity status for worker nodes
   ansible.builtin.debug:
-    msg: "Worker nodes connectivity check (port 50000): {{ worker_connectivity.results | map(attribute='state') | list }}"
+    msg: "Worker nodes connectivity (port 50000): {% for result in worker_connectivity.results %}{{ result.item }}: {{ 'OK' if not result.failed else 'UNREACHABLE' }}{{ ', ' if not loop.last else '' }}{% endfor %}"
 
 - name: Display prerequisites summary
   ansible.builtin.debug:
