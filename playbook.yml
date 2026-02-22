@@ -1,13 +1,17 @@
 ---
-# Main playbook for deploying air-gapped Talos Kubernetes cluster with Cilium CNI
-# Usage: ansible-playbook -i inventory/hosts.yml playbook.yml --ask-vault-pass
+# Main playbook for deploying Talos Kubernetes cluster with Cilium CNI
+# Supports both internet-connected and air-gapped deployments
+# Usage: ansible-playbook -i inventory/hosts.yml playbook.yml
 
 - name: Validate air-gapped environment
   hosts: localhost
   gather_facts: false
-  tags: [validate, always]
+  tags: [validate_airgap]
+  vars_files:
+    - vars/airgap.yml
   roles:
-    - validate_airgap
+    - role: validate_airgap
+      when: airgap_enabled | default(false)
 
 - name: Install prerequisites
   hosts: localhost

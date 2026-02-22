@@ -1,14 +1,14 @@
-# Talos Kubernetes Cluster with Cilium CNI - Air-Gapped Deployment
+# Talos Kubernetes Cluster with Cilium CNI
 
-Ansible playbook for deploying a production-ready Kubernetes cluster on Talos Linux with Cilium CNI in air-gapped environments.
+Ansible playbook for deploying a production-ready Kubernetes cluster on Talos Linux with Cilium CNI. Supports both **air-gapped** and **internet-connected** deployments.
 
 ## Features
 
-- **Air-gapped deployment** with local container registry
+- **Flexible deployment** - air-gapped or internet-connected mode
 - **Cilium CNI** installed via CLI for easy management
 - **Simple image configuration** - define all images in one file
 - **Customizable cluster size** via inventory file
-- **Registry mirrors** for all required images
+- **Registry mirrors** for air-gapped deployments
 - **Easy upgrades** - just change versions and rerun
 - **Idempotent** playbook execution
 
@@ -17,8 +17,32 @@ Ansible playbook for deploying a production-ready Kubernetes cluster on Talos Li
 - **Talos Linux**: Immutable Kubernetes OS
 - **Cilium**: Modern eBPF-based CNI with kube-proxy replacement
 - **KubePrism**: Talos local API server proxy for HA
-- **Local Registry**: Air-gapped image distribution
 - **CLI Installation**: Post-bootstrap Cilium deployment
+
+## Deployment Modes
+
+Choose the deployment mode that fits your environment:
+
+| Feature | Internet-Connected | Air-Gapped |
+|---------|-------------------|------------|
+| **Setup Complexity** | Simple | Moderate |
+| **Local Registry** | Not needed | Required |
+| **Image Mirroring** | Not needed | Required |
+| **Network Access** | Public registries | Isolated |
+| **Best For** | Most environments | Secure/isolated networks |
+
+### Internet-Connected (Default)
+- Images pulled directly from public registries (quay.io, registry.k8s.io, ghcr.io)
+- No local registry required
+- Simpler setup for most environments
+- Set `airgap_enabled: false` in `vars/airgap.yml`
+
+### Air-Gapped
+- All images served from local registry
+- Requires image mirroring
+- Complete network isolation
+- Set `airgap_enabled: true` in `vars/airgap.yml`
+- See [docs/AIRGAP.md](docs/AIRGAP.md) for setup details
 
 ## Prerequisites
 
@@ -44,48 +68,61 @@ Ansible playbook for deploying a production-ready Kubernetes cluster on Talos Li
    - DHCP-assigned or static IP addresses
    - Network connectivity on port 50000 (Talos API)
 
-2. **Container Registry**:
+2. **Container Registry** (air-gapped only):
    - Running and accessible from all nodes
    - Sufficient storage for all required images (~5-10GB)
    - Optional: TLS with valid or self-signed certificates
    - Optional: Authentication enabled
 
 3. **Network**:
-   - All nodes can reach local registry
+   - Internet-connected: Nodes can reach public registries
+   - Air-gapped: All nodes can reach local registry
    - Ansible controller can reach all nodes on port 50000
    - Control plane endpoint accessible (load balancer or first CP node)
 
 ## Quick Start
 
-### 1. Configure Cilium Images
+### Internet-Connected Deployment (Simplest)
 
-Edit **`vars/cilium_images.yml`** to define all Cilium component images:
-
+**1. Enable internet mode** in `vars/airgap.yml`:
 ```yaml
-cilium_image:
-  repository: "registry.local:5000/cilium/cilium"
-  tag: "v1.19.1"
-
-operator_image:
-  repository: "registry.local:5000/cilium/operator-generic"
-  tag: "v1.19.1"
-# ... (see file for all components)
+airgap_enabled: false
 ```
 
-### 2. Prepare Air-Gapped Environment
+**2. Configure inventory** with your node IPs in `inventory/hosts.yml`
 
-See [docs/AIRGAP.md](docs/AIRGAP.md) for detailed instructions.
-
-**Mirror images to your local registry**:
-
+**3. Deploy cluster**:
 ```bash
-# Use provided script
-./scripts/mirror-all-images.sh registry.local:5000
-
-# Or mirror manually (see AIRGAP.md)
+ansible-playbook -i inventory/hosts.yml playbook.yml
 ```
 
-### 3. Configure Variables
+Done! Images pulled from public registries automatically.
+
+### Air-Gapped Deployment
+
+**1. Enable air-gap mode** in `vars/airgap.yml`:
+```yaml
+airgap_enabled: true
+local_registry_url: "registry.local:5000"
+```
+
+**2. Mirror images** to your local registry:
+```bash
+./scripts/mirror-all-images.sh registry.local:5000
+```
+
+**3. Configure inventory** with your node IPs in `inventory/hosts.yml`
+
+**4. Deploy cluster**:
+```bash
+ansible-playbook -i inventory/hosts.yml playbook.yml
+```
+
+See [docs/AIRGAP.md](docs/AIRGAP.md) for detailed air-gap setup instructions.
+
+## Configuration
+
+### 1. Inventory Configuration
 
 **Edit `inventory/hosts.yml`**:
 ```yaml
@@ -102,12 +139,23 @@ workers:
     # Add more worker nodes...
 ```
 
-**Edit `vars/airgap.yml`**:
+### 2. Deployment Mode Configuration
+
+**For Internet-Connected** (default):
+- Set `airgap_enabled: false` in `vars/airgap.yml`
+- Images use public registries automatically
+- No registry configuration needed
+
+**For Air-Gapped**:
 ```yaml
-local_registry_url: "registry.yourdomain.com:5000"  # Your registry
+# Edit vars/airgap.yml
+airgap_enabled: true
+local_registry_url: "registry.yourdomain.com:5000"
 registry_username: ""  # If authentication required
 registry_password: ""  # If authentication required
 ```
+
+### 3. Cluster Configuration
 
 **Edit `group_vars/all.yml`**:
 ```yaml
@@ -117,14 +165,19 @@ kubernetes_version: "1.32.2"
 cilium_version: "1.19.1"
 ```
 
-### 3. Run Pre-Flight Validation
+### 4. Image Version Configuration (Optional)
 
-```bash
-# Validate air-gapped environment
-ansible-playbook -i inventory/hosts.yml playbook.yml --tags validate
+To change component versions, edit `vars/cilium_images.yml`:
+```yaml
+cilium_image:
+  tag: "v1.19.2"  # Update to new version
+
+operator_image:
+  tag: "v1.19.2"
+# ... update as needed
 ```
 
-### 4. Deploy Cluster
+### 5. Deploy Cluster
 
 ```bash
 # Full deployment (all phases)
@@ -140,15 +193,15 @@ ansible-playbook -i inventory/hosts.yml playbook.yml --tags validate
 ```
 
 **Deployment Phases**:
-1. **validate** - Check air-gap environment
+1. **validate_airgap** - Check air-gap environment (skipped if `airgap_enabled: false`)
 2. **prerequisites** - Verify CLI tools and connectivity
-3. **generate** - Create Talos configs with registry mirrors
+3. **generate** - Create Talos configs (with registry mirrors if air-gapped)
 4. **apply** - Apply configs to all nodes
 5. **bootstrap** - Initialize Kubernetes cluster
 6. **cilium** - Install Cilium CNI via CLI
 7. **validate** - Verify deployment success
 
-### 5. Access Your Cluster
+### 6. Access Your Cluster
 
 ```bash
 # Set kubeconfig
@@ -179,8 +232,8 @@ talosctl dashboard
 ├── group_vars/
 │   └── all.yml                # Cluster configuration
 ├── vars/
-│   ├── airgap.yml             # Air-gap registry configuration
-│   └── cilium_images.yml      # Cilium image definitions (EDIT HERE)
+│   ├── airgap.yml             # Deployment mode & registry config
+│   └── cilium_images.yml      # All image definitions (auto-switches based on mode)
 ├── roles/
 │   ├── validate_airgap/       # Validate air-gap prerequisites
 │   ├── prerequisites/         # Install required tools
@@ -209,21 +262,25 @@ talosctl dashboard
 
 ## Configuration Options
 
-### Easy Image Configuration
+### Image Configuration
 
-**All Cilium images defined in one file**: `vars/cilium_images.yml`
+**All images automatically configured based on deployment mode** in `vars/cilium_images.yml`:
 
-```yaml
-cilium_image:
-  repository: "registry.local:5000/cilium/cilium"
-  tag: "v1.19.1"
+- **Internet-Connected** (`airgap_enabled: false`): Uses public registries
+  ```yaml
+  cilium_image:
+    repository: "quay.io/cilium/cilium"  # Direct from quay.io
+    tag: "v1.19.1"
+  ```
 
-operator_image:
-  repository: "registry.local:5000/cilium/operator-generic"
-  tag: "v1.19.1"
+- **Air-Gapped** (`airgap_enabled: true`): Uses local registry
+  ```yaml
+  cilium_image:
+    repository: "registry.local:5000/cilium/cilium"  # From local registry
+    tag: "v1.19.1"
+  ```
 
-# ... more images
-```
+The repository automatically switches - just change `airgap_enabled` flag!
 
 ### Cilium Installation Settings
 
@@ -243,11 +300,12 @@ pod_cidr: "10.244.0.0/16"          # Pod network CIDR
 service_cidr: "10.96.0.0/12"       # Service network CIDR
 ```
 
-### Registry Configuration
+### Registry Configuration (Air-Gapped Only)
 
-For registries with self-signed certificates:
+For air-gapped deployments with self-signed certificates:
 
 ```yaml
+# In vars/airgap.yml
 registry_insecure_skip_verify: true
 
 # Or provide CA certificate:

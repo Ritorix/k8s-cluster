@@ -6,8 +6,16 @@
 # All image definitions are in vars/cilium_images.yml
 
 # =============================================================================
+# AIR-GAP MODE
+# =============================================================================
+# Set to false for internet-connected deployments (images pulled from public registries)
+# Set to true for air-gapped deployments (images pulled from local registry)
+airgap_enabled: false
+
+# =============================================================================
 # REGISTRY SETTINGS
 # =============================================================================
+# Only required if airgap_enabled: true
 
 # Local container registry URL
 # Format: hostname:port or hostname (if using standard ports)
