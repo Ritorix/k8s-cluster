@@ -311,9 +311,11 @@ cilium_install_settings:
 ### Network Configuration
 
 ```yaml
-pod_cidr: "10.244.0.0/16"          # Pod network CIDR
-service_cidr: "10.96.0.0/12"       # Service network CIDR
+pod_cidr: "10.244.0.0/16"          # Pod network CIDR (10.244.0.0 - 10.244.255.255)
+service_cidr: "10.96.0.0/16"       # Service network CIDR (10.96.0.0 - 10.96.255.255)
 ```
+
+**Note:** Service CIDR was changed from `/12` to `/16` to avoid address overlap with host networks in the `10.100.x.x` range.
 
 ### Registry Configuration (Air-Gapped Only)
 
