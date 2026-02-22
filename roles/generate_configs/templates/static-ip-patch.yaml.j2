@@ -1,0 +1,20 @@
+# Static IP configuration patch for {{ inventory_hostname }}
+machine:
+  network:
+    hostname: {{ inventory_hostname }}
+    interfaces:
+      - interface: {{ static_interface | default('eth0') }}
+        addresses:
+          - {{ static_ip }}/{{ static_netmask | default('24') }}
+        routes:
+          - network: 0.0.0.0/0
+            gateway: {{ static_gateway }}
+{% if dns_servers is defined and dns_servers | length > 0 %}
+        dhcp: false
+    nameservers:
+{% for dns in dns_servers %}
+      - {{ dns }}
+{% endfor %}
+{% else %}
+        dhcp: false
+{% endif %}

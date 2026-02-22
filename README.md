@@ -139,6 +139,20 @@ workers:
     # Add more worker nodes...
 ```
 
+**Static IP Configuration** (optional):
+
+If nodes boot with DHCP but you want permanent static IPs:
+```yaml
+cp01:
+  ansible_host: 192.168.1.100  # Current DHCP IP (for connection)
+  static_ip: 192.168.1.10       # Desired static IP
+  static_gateway: 192.168.1.1
+  static_netmask: "24"
+  static_interface: "eth0"
+```
+
+Playbook connects via DHCP, applies config with static IPs, nodes switch automatically. See [docs/STATIC_IP.md](docs/STATIC_IP.md) for complete guide.
+
 ### 2. Deployment Mode Configuration
 
 **For Internet-Connected** (default):
@@ -257,6 +271,7 @@ talosctl dashboard
 └── docs/
     ├── AIRGAP.md              # Air-gap setup guide
     ├── CILIUM_INSTALL.md      # Cilium installation guide
+    ├── STATIC_IP.md           # Static IP configuration guide
     └── QUICKSTART.md          # Quick start guide
 ```
 
@@ -332,6 +347,7 @@ Store `secrets.yaml` in HashiCorp Vault, AWS Secrets Manager, etc.
 
 - **[Cilium Installation Guide](docs/CILIUM_INSTALL.md)** - Managing Cilium with CLI
 - **[Air-Gap Setup Guide](docs/AIRGAP.md)** - Complete air-gap preparation
+- **[Static IP Configuration](docs/STATIC_IP.md)** - Configure static IPs via DHCP initially
 - **[Quick Start Guide](docs/QUICKSTART.md)** - Step-by-step deployment
 
 ## Operations

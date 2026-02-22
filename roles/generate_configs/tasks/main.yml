@@ -33,6 +33,20 @@
     dest: "{{ talos_config_dir }}/cni-patch.yaml"
     mode: '0644'
 
+- name: Generate static IP patches for each node
+  ansible.builtin.template:
+    src: static-ip-patch.yaml.j2
+    dest: "{{ talos_config_dir }}/{{ item }}-static-ip-patch.yaml"
+    mode: '0644'
+  loop: "{{ groups['control_plane'] + groups['workers'] }}"
+  when: hostvars[item].static_ip is defined
+  vars:
+    inventory_hostname: "{{ item }}"
+    static_ip: "{{ hostvars[item].static_ip }}"
+    static_gateway: "{{ hostvars[item].static_gateway }}"
+    static_netmask: "{{ hostvars[item].static_netmask | default('24') }}"
+    static_interface: "{{ hostvars[item].static_interface | default('eth0') }}"
+
 - name: Combine patches for controlplane (air-gapped)
   ansible.builtin.shell:
     cmd: |

@@ -21,13 +21,14 @@
       --insecure
       --nodes {{ hostvars[item]['ansible_host'] }}
       --file {{ talos_config_dir }}/controlplane.yaml
+      {% if hostvars[item].static_ip is defined %}--config-patch @{{ talos_config_dir }}/{{ item }}-static-ip-patch.yaml{% endif %}
   loop: "{{ groups['control_plane'] }}"
   register: cp_apply
   changed_when: true
 
 - name: Display control plane application status
   ansible.builtin.debug:
-    msg: "✓ Configuration applied to {{ groups['control_plane'] | length }} control plane node(s)"
+    msg: "✓ Configuration applied to {{ groups['control_plane'] | length }} control plane node(s){% if groups['control_plane'] | map('extract', hostvars) | selectattr('static_ip', 'defined') | list | length > 0 %} with static IPs{% endif %}"
 
 - name: Wait for worker nodes to be reachable
   ansible.builtin.wait_for:
@@ -45,13 +46,14 @@
       --insecure
       --nodes {{ hostvars[item]['ansible_host'] }}
       --file {{ talos_config_dir }}/worker.yaml
+      {% if hostvars[item].static_ip is defined %}--config-patch @{{ talos_config_dir }}/{{ item }}-static-ip-patch.yaml{% endif %}
   loop: "{{ groups['workers'] }}"
   register: worker_apply
   changed_when: true
 
 - name: Display worker application status
   ansible.builtin.debug:
-    msg: "✓ Configuration applied to {{ groups['workers'] | length }} worker node(s)"
+    msg: "✓ Configuration applied to {{ groups['workers'] | length }} worker node(s){% if groups['workers'] | map('extract', hostvars) | selectattr('static_ip', 'defined') | list | length > 0 %} with static IPs{% endif %}"
 
 - name: Configure talosctl endpoints
   ansible.builtin.command:
