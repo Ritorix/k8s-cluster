@@ -122,12 +122,12 @@ Cluster Validation Complete
 ```bash
 $ kubectl get nodes
 NAME     STATUS   ROLES           AGE   VERSION
-cp01     Ready    control-plane   5m    v1.31.4
-cp02     Ready    control-plane   5m    v1.31.4
-cp03     Ready    control-plane   5m    v1.31.4
-worker01 Ready    <none>          5m    v1.31.4
-worker02 Ready    <none>          5m    v1.31.4
-worker03 Ready    <none>          5m    v1.31.4
+cp01     Ready    control-plane   5m    v1.32.2
+cp02     Ready    control-plane   5m    v1.32.2
+cp03     Ready    control-plane   5m    v1.32.2
+worker01 Ready    <none>          5m    v1.32.2
+worker02 Ready    <none>          5m    v1.32.2
+worker03 Ready    <none>          5m    v1.32.2
 
 $ kubectl get pods -n kube-system
 NAME                     READY   STATUS    RESTARTS   AGE

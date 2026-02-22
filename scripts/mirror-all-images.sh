@@ -56,27 +56,27 @@ mirror_image() {
 
 # Cilium images
 echo "=== Cilium Images ==="
-mirror_image "quay.io/cilium/cilium" "cilium/cilium" "v1.18.0"
-mirror_image "quay.io/cilium/operator-generic" "cilium/operator-generic" "v1.18.0"
-mirror_image "quay.io/cilium/hubble-relay" "cilium/hubble-relay" "v1.18.0"
+mirror_image "quay.io/cilium/cilium" "cilium/cilium" "v1.17.2"
+mirror_image "quay.io/cilium/operator-generic" "cilium/operator-generic" "v1.17.2"
+mirror_image "quay.io/cilium/hubble-relay" "cilium/hubble-relay" "v1.17.2"
 mirror_image "quay.io/cilium/hubble-ui" "cilium/hubble-ui" "v0.13.1"
 mirror_image "quay.io/cilium/hubble-ui-backend" "cilium/hubble-ui-backend" "v0.13.1"
-mirror_image "quay.io/cilium/cilium-envoy" "cilium/cilium-envoy" "v1.31.3-1736434280-d9c8b3ad18c67d43c24de78b6b74ed8b3e1eec5e"
+mirror_image "quay.io/cilium/cilium-envoy" "cilium/cilium-envoy" "v1.31.6-1738872074-d9c8b3ad18c67d43c24de78b6b74ed8b3e1eec5e"
 mirror_image "quay.io/cilium/certgen" "cilium/certgen" "v0.2.1"
 
 # Kubernetes images
 echo "=== Kubernetes Images ==="
-mirror_image "registry.k8s.io/kube-apiserver" "kube-apiserver" "v1.31.4"
-mirror_image "registry.k8s.io/kube-controller-manager" "kube-controller-manager" "v1.31.4"
-mirror_image "registry.k8s.io/kube-scheduler" "kube-scheduler" "v1.31.4"
-mirror_image "registry.k8s.io/coredns/coredns" "coredns/coredns" "v1.11.3"
-mirror_image "registry.k8s.io/pause" "pause" "3.10"
-mirror_image "registry.k8s.io/etcd" "etcd" "3.5.16-0"
+mirror_image "registry.k8s.io/kube-apiserver" "kube-apiserver" "v1.32.2"
+mirror_image "registry.k8s.io/kube-controller-manager" "kube-controller-manager" "v1.32.2"
+mirror_image "registry.k8s.io/kube-scheduler" "kube-scheduler" "v1.32.2"
+mirror_image "registry.k8s.io/coredns/coredns" "coredns/coredns" "v1.12.0"
+mirror_image "registry.k8s.io/pause" "pause" "3.11"
+mirror_image "registry.k8s.io/etcd" "etcd" "3.5.17-0"
 
 # Talos images
 echo "=== Talos Images ==="
-mirror_image "ghcr.io/siderolabs/installer" "siderolabs/installer" "v1.8.3"
-mirror_image "ghcr.io/siderolabs/kubelet" "siderolabs/kubelet" "v1.31.4"
+mirror_image "ghcr.io/siderolabs/installer" "siderolabs/installer" "v1.12.4"
+mirror_image "ghcr.io/siderolabs/kubelet" "siderolabs/kubelet" "v1.32.2"
 
 echo "============================================"
 echo "Image mirroring complete!"

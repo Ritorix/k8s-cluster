@@ -86,7 +86,7 @@ On a connected machine, download for your OS:
 
 ```bash
 # Linux
-VERSION=v1.8.3
+VERSION=v1.12.4
 curl -Lo talosctl https://github.com/siderolabs/talos/releases/download/${VERSION}/talosctl-linux-amd64
 chmod +x talosctl
 
@@ -102,7 +102,7 @@ chmod +x talosctl
 
 ```bash
 # Linux
-VERSION=1.31.4
+VERSION=1.32.2
 curl -LO "https://dl.k8s.io/release/v${VERSION}/bin/linux/amd64/kubectl"
 chmod +x kubectl
 
@@ -118,14 +118,14 @@ chmod +x kubectl
 
 ```bash
 # Linux
-curl -fsSL https://get.helm.sh/helm-v3.17.0-linux-amd64.tar.gz | tar -xz
+curl -fsSL https://get.helm.sh/helm-v3.17.1-linux-amd64.tar.gz | tar -xz
 mv linux-amd64/helm .
 
 # Windows
-curl -fsSL https://get.helm.sh/helm-v3.17.0-windows-amd64.zip -o helm.zip
+curl -fsSL https://get.helm.sh/helm-v3.17.1-windows-amd64.zip -o helm.zip
 
 # Mac
-curl -fsSL https://get.helm.sh/helm-v3.17.0-darwin-amd64.tar.gz | tar -xz
+curl -fsSL https://get.helm.sh/helm-v3.17.1-darwin-amd64.tar.gz | tar -xz
 mv darwin-amd64/helm .
 ```
 
@@ -139,10 +139,10 @@ helm repo add cilium https://helm.cilium.io/
 helm repo update
 
 # Download chart
-helm pull cilium/cilium --version 1.18.0
+helm pull cilium/cilium --version 1.17.2
 
 # Copy to playbook files directory
-mv cilium-1.18.0.tgz /path/to/k8s-cluster/files/
+mv cilium-1.17.2.tgz /path/to/k8s-cluster/files/
 ```
 
 ## Step 4: Mirror Container Images
@@ -152,25 +152,25 @@ mv cilium-1.18.0.tgz /path/to/k8s-cluster/files/
 The playbook needs these images mirrored to your local registry:
 
 **Cilium Images** (~2GB):
-- quay.io/cilium/cilium:v1.18.0
-- quay.io/cilium/operator-generic:v1.18.0
-- quay.io/cilium/hubble-relay:v1.18.0
+- quay.io/cilium/cilium:v1.17.2
+- quay.io/cilium/operator-generic:v1.17.2
+- quay.io/cilium/hubble-relay:v1.17.2
 - quay.io/cilium/hubble-ui:v0.13.1
 - quay.io/cilium/hubble-ui-backend:v0.13.1
-- quay.io/cilium/cilium-envoy:v1.31.3-1736434280-d9c8b3ad18c67d43c24de78b6b74ed8b3e1eec5e
+- quay.io/cilium/cilium-envoy:v1.31.6-1738872074-d9c8b3ad18c67d43c24de78b6b74ed8b3e1eec5e
 - quay.io/cilium/certgen:v0.2.1
 
 **Kubernetes Images** (~1GB):
-- registry.k8s.io/kube-apiserver:v1.31.4
-- registry.k8s.io/kube-controller-manager:v1.31.4
-- registry.k8s.io/kube-scheduler:v1.31.4
-- registry.k8s.io/coredns/coredns:v1.11.3
-- registry.k8s.io/pause:3.10
-- registry.k8s.io/etcd:3.5.16-0
+- registry.k8s.io/kube-apiserver:v1.32.2
+- registry.k8s.io/kube-controller-manager:v1.32.2
+- registry.k8s.io/kube-scheduler:v1.32.2
+- registry.k8s.io/coredns/coredns:v1.12.0
+- registry.k8s.io/pause:3.11
+- registry.k8s.io/etcd:3.5.17-0
 
 **Talos Images** (~1GB):
-- ghcr.io/siderolabs/installer:v1.8.3
-- ghcr.io/siderolabs/kubelet:v1.31.4
+- ghcr.io/siderolabs/installer:v1.12.4
+- ghcr.io/siderolabs/kubelet:v1.32.2
 
 ### Mirroring Methods
 
@@ -183,17 +183,17 @@ The playbook needs these images mirrored to your local registry:
 REGISTRY="registry.local:5000"
 
 # Cilium images
-skopeo copy docker://quay.io/cilium/cilium:v1.18.0 \
-  docker://${REGISTRY}/cilium/cilium:v1.18.0 --dest-tls-verify=false
+skopeo copy docker://quay.io/cilium/cilium:v1.17.2 \
+  docker://${REGISTRY}/cilium/cilium:v1.17.2 --dest-tls-verify=false
 
-skopeo copy docker://quay.io/cilium/operator-generic:v1.18.0 \
-  docker://${REGISTRY}/cilium/operator-generic:v1.18.0 --dest-tls-verify=false
+skopeo copy docker://quay.io/cilium/operator-generic:v1.17.2 \
+  docker://${REGISTRY}/cilium/operator-generic:v1.17.2 --dest-tls-verify=false
 
 # Add remaining images...
 
 # Kubernetes images
-skopeo copy docker://registry.k8s.io/kube-apiserver:v1.31.4 \
-  docker://${REGISTRY}/kube-apiserver:v1.31.4 --dest-tls-verify=false
+skopeo copy docker://registry.k8s.io/kube-apiserver:v1.32.2 \
+  docker://${REGISTRY}/kube-apiserver:v1.32.2 --dest-tls-verify=false
 
 # Continue for all images...
 ```
@@ -208,8 +208,8 @@ Run: `bash mirror-images.sh`
 
 REGISTRY="registry.local:5000"
 
-crane cp quay.io/cilium/cilium:v1.18.0 ${REGISTRY}/cilium/cilium:v1.18.0
-crane cp quay.io/cilium/operator-generic:v1.18.0 ${REGISTRY}/cilium/operator-generic:v1.18.0
+crane cp quay.io/cilium/cilium:v1.17.2 ${REGISTRY}/cilium/cilium:v1.17.2
+crane cp quay.io/cilium/operator-generic:v1.17.2 ${REGISTRY}/cilium/operator-generic:v1.17.2
 
 # Continue for all images...
 ```
@@ -233,8 +233,8 @@ mirror_image() {
 }
 
 # Cilium images
-mirror_image quay.io/cilium/cilium:v1.18.0 ${REGISTRY}/cilium/cilium:v1.18.0
-mirror_image quay.io/cilium/operator-generic:v1.18.0 ${REGISTRY}/cilium/operator-generic:v1.18.0
+mirror_image quay.io/cilium/cilium:v1.17.2 ${REGISTRY}/cilium/cilium:v1.17.2
+mirror_image quay.io/cilium/operator-generic:v1.17.2 ${REGISTRY}/cilium/operator-generic:v1.17.2
 
 # Continue for all images...
 ```
@@ -244,8 +244,8 @@ mirror_image quay.io/cilium/operator-generic:v1.18.0 ${REGISTRY}/cilium/operator
 ```bash
 # Save images to tarball
 docker save \
-  quay.io/cilium/cilium:v1.18.0 \
-  quay.io/cilium/operator-generic:v1.18.0 \
+  quay.io/cilium/cilium:v1.17.2 \
+  quay.io/cilium/operator-generic:v1.17.2 \
   ... \
   > k8s-images.tar.gz
 
@@ -255,8 +255,8 @@ docker save \
 docker load < k8s-images.tar.gz
 
 # Tag and push to local registry
-docker tag quay.io/cilium/cilium:v1.18.0 registry.local:5000/cilium/cilium:v1.18.0
-docker push registry.local:5000/cilium/cilium:v1.18.0
+docker tag quay.io/cilium/cilium:v1.17.2 registry.local:5000/cilium/cilium:v1.17.2
+docker push registry.local:5000/cilium/cilium:v1.17.2
 # Repeat for all images...
 ```
 
@@ -277,8 +277,8 @@ echo "Mirroring images to ${REGISTRY} using ${METHOD}"
 
 declare -a IMAGES=(
   # Cilium
-  "quay.io/cilium/cilium:v1.18.0|cilium/cilium:v1.18.0"
-  "quay.io/cilium/operator-generic:v1.18.0|cilium/operator-generic:v1.18.0"
+  "quay.io/cilium/cilium:v1.17.2|cilium/cilium:v1.17.2"
+  "quay.io/cilium/operator-generic:v1.17.2|cilium/operator-generic:v1.17.2"
   # Add all images from vars/airgap.yml...
 )
 
@@ -341,8 +341,8 @@ check_image() {
 }
 
 # Check all required images
-check_image "cilium/cilium" "v1.18.0"
-check_image "cilium/operator-generic" "v1.18.0"
+check_image "cilium/cilium" "v1.17.2"
+check_image "cilium/operator-generic" "v1.17.2"
 # Add all required images...
 
 if [ $MISSING -eq 0 ]; then

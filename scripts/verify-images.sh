@@ -34,29 +34,29 @@ check_image() {
 
 # Check Cilium images
 echo "=== Cilium Images ==="
-check_image "cilium/cilium" "v1.18.0"
-check_image "cilium/operator-generic" "v1.18.0"
-check_image "cilium/hubble-relay" "v1.18.0"
+check_image "cilium/cilium" "v1.17.2"
+check_image "cilium/operator-generic" "v1.17.2"
+check_image "cilium/hubble-relay" "v1.17.2"
 check_image "cilium/hubble-ui" "v0.13.1"
 check_image "cilium/hubble-ui-backend" "v0.13.1"
-check_image "cilium/cilium-envoy" "v1.31.3-1736434280-d9c8b3ad18c67d43c24de78b6b74ed8b3e1eec5e"
+check_image "cilium/cilium-envoy" "v1.31.6-1738872074-d9c8b3ad18c67d43c24de78b6b74ed8b3e1eec5e"
 check_image "cilium/certgen" "v0.2.1"
 echo ""
 
 # Check Kubernetes images
 echo "=== Kubernetes Images ==="
-check_image "kube-apiserver" "v1.31.4"
-check_image "kube-controller-manager" "v1.31.4"
-check_image "kube-scheduler" "v1.31.4"
-check_image "coredns/coredns" "v1.11.3"
-check_image "pause" "3.10"
-check_image "etcd" "3.5.16-0"
+check_image "kube-apiserver" "v1.32.2"
+check_image "kube-controller-manager" "v1.32.2"
+check_image "kube-scheduler" "v1.32.2"
+check_image "coredns/coredns" "v1.12.0"
+check_image "pause" "3.11"
+check_image "etcd" "3.5.17-0"
 echo ""
 
 # Check Talos images
 echo "=== Talos Images ==="
-check_image "siderolabs/installer" "v1.8.3"
-check_image "siderolabs/kubelet" "v1.31.4"
+check_image "siderolabs/installer" "v1.12.4"
+check_image "siderolabs/kubelet" "v1.32.2"
 echo ""
 
 echo "============================================"

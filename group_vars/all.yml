@@ -6,9 +6,9 @@ cluster_name: "talos-k8s"
 cluster_domain: "cluster.local"
 
 # Versions - update these as needed
-talos_version: "v1.8.3"
-kubernetes_version: "1.31.4"
-cilium_version: "1.18.0"
+talos_version: "v1.12.4"
+kubernetes_version: "1.32.2"
+cilium_version: "1.17.2"
 
 # Kubernetes endpoint - for single control plane use first CP node IP
 # For HA, use load balancer VIP or DNS name

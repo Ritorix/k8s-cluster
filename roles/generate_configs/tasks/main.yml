@@ -46,13 +46,13 @@
       --set hubble.relay.image.repository={{ local_registry_mirror_prefix }}/cilium/hubble-relay
       --set hubble.relay.image.tag=v{{ cilium_version }}
       --set hubble.ui.frontend.image.repository={{ local_registry_mirror_prefix }}/cilium/hubble-ui
-      --set hubble.ui.frontend.image.tag=v0.13.1
+      --set hubble.ui.frontend.image.tag={{ cilium_hubble_ui_version }}
       --set hubble.ui.backend.image.repository={{ local_registry_mirror_prefix }}/cilium/hubble-ui-backend
-      --set hubble.ui.backend.image.tag=v0.13.1
+      --set hubble.ui.backend.image.tag={{ cilium_hubble_ui_version }}
       --set envoy.image.repository={{ local_registry_mirror_prefix }}/cilium/cilium-envoy
-      --set envoy.image.tag=v1.31.3-1736434280-d9c8b3ad18c67d43c24de78b6b74ed8b3e1eec5e
+      --set envoy.image.tag={{ cilium_envoy_version }}
       --set certgen.image.repository={{ local_registry_mirror_prefix }}/cilium/certgen
-      --set certgen.image.tag=v0.2.1
+      --set certgen.image.tag={{ cilium_certgen_version }}
       --set securityContext.capabilities.ciliumAgent="{CHOWN,KILL,NET_ADMIN,NET_RAW,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}"
       --set securityContext.capabilities.cleanCiliumState="{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}"
       --set cgroup.autoMount.enabled=false

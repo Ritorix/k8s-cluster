@@ -66,8 +66,8 @@ See [docs/AIRGAP.md](docs/AIRGAP.md) for detailed instructions.
 # Download Cilium Helm chart
 helm repo add cilium https://helm.cilium.io/
 helm repo update
-helm pull cilium/cilium --version 1.18.0
-mv cilium-1.18.0.tgz files/
+helm pull cilium/cilium --version 1.17.2
+mv cilium-1.17.2.tgz files/
 
 # Mirror images to your local registry (see AIRGAP.md)
 ```
@@ -99,9 +99,9 @@ registry_password: ""  # If authentication required
 **Edit `group_vars/all.yml`**:
 ```yaml
 cluster_name: "my-cluster"
-talos_version: "v1.8.3"
-kubernetes_version: "1.31.4"
-cilium_version: "1.18.0"
+talos_version: "v1.12.4"
+kubernetes_version: "1.32.2"
+cilium_version: "1.17.2"
 ```
 
 ### 3. Run Pre-Flight Validation
@@ -168,7 +168,7 @@ talosctl dashboard
 │   ├── talosconfig            # Talosctl config
 │   └── kubeconfig             # Kubectl config
 ├── files/
-│   └── cilium-1.18.0.tgz      # Offline Cilium chart (download)
+│   └── cilium-1.17.2.tgz      # Offline Cilium chart (download)
 └── docs/
     └── AIRGAP.md              # Air-gap setup guide
 ```
@@ -237,7 +237,7 @@ Store `secrets.yaml` in HashiCorp Vault, AWS Secrets Manager, etc.
 2. Mirror new Kubernetes images to registry
 3. Run:
    ```bash
-   talosctl upgrade-k8s --to v1.31.5
+   talosctl upgrade-k8s --to v1.32.3
    ```
 
 ### Upgrade Talos
@@ -246,7 +246,7 @@ Store `secrets.yaml` in HashiCorp Vault, AWS Secrets Manager, etc.
 2. Mirror new Talos installer image
 3. Run:
    ```bash
-   talosctl upgrade --image registry.local:5000/siderolabs/installer:v1.8.4
+   talosctl upgrade --image registry.local:5000/siderolabs/installer:v1.12.5
    ```
 
 ## Troubleshooting

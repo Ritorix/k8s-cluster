@@ -5,12 +5,12 @@ Place offline resources in this directory:
 ## Required Files
 
 ### Cilium Helm Chart
-- **File**: `cilium-1.18.0.tgz`
+- **File**: `cilium-1.17.2.tgz`
 - **Download**: 
   ```bash
   helm repo add cilium https://helm.cilium.io/
   helm repo update
-  helm pull cilium/cilium --version 1.18.0
+  helm pull cilium/cilium --version 1.17.2
   ```
 
 ### Optional: Registry CA Certificate
