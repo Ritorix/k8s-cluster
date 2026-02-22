@@ -66,17 +66,17 @@ kube_scheduler_image:
 
 coredns_image:
   repository: "{{ 'registry.k8s.io/coredns/coredns' if not airgap_enabled else local_registry_url + '/coredns/coredns' }}"
-  tag: "v1.12.0"
+  tag: "v1.13.2"
   source: "registry.k8s.io/coredns/coredns"
 
 pause_image:
   repository: "{{ 'registry.k8s.io/pause' if not airgap_enabled else local_registry_url + '/pause' }}"
-  tag: "3.11"
+  tag: "3.10"
   source: "registry.k8s.io/pause"
 
 etcd_image:
   repository: "{{ 'registry.k8s.io/etcd' if not airgap_enabled else local_registry_url + '/etcd' }}"
-  tag: "3.5.17-0"
+  tag: "3.6.7-0"
   source: "registry.k8s.io/etcd"
 
 # =============================================================================

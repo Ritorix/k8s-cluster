@@ -2,12 +2,12 @@
 # Global configuration for Talos Kubernetes cluster
 
 # Cluster identification
-cluster_name: "talos-k8s"
+cluster_name: "cluster1"
 cluster_domain: "cluster.local"
 
 # Versions - update these as needed
 talos_version: "v1.12.4"
-kubernetes_version: "1.32.2"
+kubernetes_version: "1.35.0"
 cilium_version: "1.19.1"
 
 # Kubernetes endpoint - for single control plane use first CP node IP
@@ -26,8 +26,8 @@ install_disk: "/dev/sda"  # Common: /dev/sda, /dev/vda, /dev/nvme0n1
 # network_interface: "eth0"
 
 # DNS servers (optional, defaults to DHCP-provided)
-# dns_servers:
-#   - 1.1.1.1
+dns_servers:
+ - 172.27.10.234
 #   - 8.8.8.8
 
 # NTP servers (optional)
@@ -54,11 +54,11 @@ cilium_config:
   gateway_api_enabled: false
   
   # Hubble observability (optional)
-  hubble_enabled: false
+  hubble_enabled: true
   hubble_ui_enabled: false
 
 # Working directories
-talos_config_dir: "{{ playbook_dir }}/generated-configs"
+talos_config_dir: "/opt/talos/"
 talos_secrets_file: "{{ talos_config_dir }}/secrets.yaml"
 talosconfig_file: "{{ talos_config_dir }}/talosconfig"
 kubeconfig_file: "{{ talos_config_dir }}/kubeconfig"

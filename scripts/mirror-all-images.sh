@@ -84,17 +84,17 @@ mirror_image "quay.io/cilium/certgen" "cilium/certgen" "v0.3.2"
 
 # Kubernetes images
 echo "=== Kubernetes Images ==="
-mirror_image "registry.k8s.io/kube-apiserver" "kube-apiserver" "v1.32.2"
-mirror_image "registry.k8s.io/kube-controller-manager" "kube-controller-manager" "v1.32.2"
-mirror_image "registry.k8s.io/kube-scheduler" "kube-scheduler" "v1.32.2"
-mirror_image "registry.k8s.io/coredns/coredns" "coredns/coredns" "v1.12.0"
-mirror_image "registry.k8s.io/pause" "pause" "3.11"
-mirror_image "registry.k8s.io/etcd" "etcd" "3.5.17-0"
+mirror_image "registry.k8s.io/kube-apiserver" "kube-apiserver" "v1.35.0"
+mirror_image "registry.k8s.io/kube-controller-manager" "kube-controller-manager" "v1.35.0"
+mirror_image "registry.k8s.io/kube-scheduler" "kube-scheduler" "v1.35.0"
+mirror_image "registry.k8s.io/coredns/coredns" "coredns/coredns" "v1.13.2"
+mirror_image "registry.k8s.io/pause" "pause" "3.10"
+mirror_image "registry.k8s.io/etcd" "etcd" "3.6.7-0"
 
 # Talos images
 echo "=== Talos Images ==="
 mirror_image "ghcr.io/siderolabs/installer" "siderolabs/installer" "v1.12.4"
-mirror_image "ghcr.io/siderolabs/kubelet" "siderolabs/kubelet" "v1.32.2"
+mirror_image "ghcr.io/siderolabs/kubelet" "siderolabs/kubelet" "v1.35.0"
 
 echo "============================================"
 echo "Image mirroring complete!"

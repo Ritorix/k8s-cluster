@@ -55,18 +55,18 @@ echo ""
 
 # Check Kubernetes images
 echo "=== Kubernetes Images ==="
-check_image "kube-apiserver" "v1.32.2"
-check_image "kube-controller-manager" "v1.32.2"
-check_image "kube-scheduler" "v1.32.2"
-check_image "coredns/coredns" "v1.12.0"
-check_image "pause" "3.11"
-check_image "etcd" "3.5.17-0"
+check_image "kube-apiserver" "v1.35.0"
+check_image "kube-controller-manager" "v1.35.0"
+check_image "kube-scheduler" "v1.35.0"
+check_image "coredns/coredns" "v1.13.2"
+check_image "pause" "3.10"
+check_image "etcd" "3.6.7-0"
 echo ""
 
 # Check Talos images
 echo "=== Talos Images ==="
 check_image "siderolabs/installer" "v1.12.4"
-check_image "siderolabs/kubelet" "v1.32.2"
+check_image "siderolabs/kubelet" "v1.35.0"
 echo ""
 
 echo "============================================"
