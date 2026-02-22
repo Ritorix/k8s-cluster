@@ -1,7 +1,6 @@
 # Static IP configuration patch for {{ inventory_hostname }}
 machine:
   network:
-    hostname: {{ inventory_hostname }}
     interfaces:
       - interface: {{ static_interface | default('eth0') }}
         addresses:
