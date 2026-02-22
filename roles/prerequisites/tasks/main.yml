@@ -83,7 +83,7 @@
 - name: Test connectivity to control plane nodes
   ansible.builtin.wait_for:
     host: "{{ hostvars[item]['ansible_host'] }}"
-    port: 50000
+    port: "{{ talos_api_port }}"
     timeout: 5
     state: started
   loop: "{{ groups['control_plane'] }}"
@@ -93,12 +93,12 @@
 
 - name: Display connectivity status for control plane nodes
   ansible.builtin.debug:
-    msg: "Control plane nodes connectivity (port 50000): {% for result in cp_connectivity.results %}{{ result.item }}: {{ 'OK' if not result.failed else 'UNREACHABLE' }}{{ ', ' if not loop.last else '' }}{% endfor %}"
+    msg: "Control plane nodes connectivity (port {{ talos_api_port }}): {% for result in cp_connectivity.results %}{{ result.item }}: {{ 'OK' if not result.failed else 'UNREACHABLE' }}{{ ', ' if not loop.last else '' }}{% endfor %}"
 
 - name: Test connectivity to worker nodes
   ansible.builtin.wait_for:
     host: "{{ hostvars[item]['ansible_host'] }}"
-    port: 50000
+    port: "{{ talos_api_port }}"
     timeout: 5
     state: started
   loop: "{{ groups['workers'] }}"
@@ -108,7 +108,7 @@
 
 - name: Display connectivity status for worker nodes
   ansible.builtin.debug:
-    msg: "Worker nodes connectivity (port 50000): {% for result in worker_connectivity.results %}{{ result.item }}: {{ 'OK' if not result.failed else 'UNREACHABLE' }}{{ ', ' if not loop.last else '' }}{% endfor %}"
+    msg: "Worker nodes connectivity (port {{ talos_api_port }}): {% for result in worker_connectivity.results %}{{ result.item }}: {{ 'OK' if not result.failed else 'UNREACHABLE' }}{{ ', ' if not loop.last else '' }}{% endfor %}"
 
 - name: Display prerequisites summary
   ansible.builtin.debug:

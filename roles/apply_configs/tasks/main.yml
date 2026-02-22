@@ -8,7 +8,7 @@
 - name: Wait for control plane nodes to be reachable
   ansible.builtin.wait_for:
     host: "{{ hostvars[item]['ansible_host'] }}"
-    port: 50000
+    port: "{{ talos_api_port }}"
     timeout: "{{ node_ready_timeout }}"
     state: started
   loop: "{{ groups['control_plane'] }}"
@@ -33,7 +33,7 @@
 - name: Wait for worker nodes to be reachable
   ansible.builtin.wait_for:
     host: "{{ hostvars[item]['ansible_host'] }}"
-    port: 50000
+    port: "{{ talos_api_port }}"
     timeout: "{{ node_ready_timeout }}"
     state: started
   loop: "{{ groups['workers'] }}"

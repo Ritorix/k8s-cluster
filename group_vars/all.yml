@@ -15,6 +15,9 @@ cilium_version: "1.19.1"
 cluster_endpoint: "{{ hostvars[groups['control_plane'][0]]['ansible_host'] }}"
 cluster_endpoint_port: 6443
 
+# Talos API configuration
+talos_api_port: 50000  # Default Talos API port (do not change unless using custom setup)
+
 # Network configuration
 pod_cidr: "10.244.0.0/16"
 service_cidr: "10.96.0.0/12"
@@ -64,7 +67,7 @@ talosconfig_file: "{{ talos_config_dir }}/talosconfig"
 kubeconfig_file: "{{ talos_config_dir }}/kubeconfig"
 
 # Timeouts and retries
-node_ready_timeout: 600  # seconds
+node_ready_timeout: 10   # seconds - time to wait for node Talos API (port 50000)
 api_ready_timeout: 300   # seconds
 pod_ready_timeout: 600   # seconds
 retry_delay: 10          # seconds between retries
