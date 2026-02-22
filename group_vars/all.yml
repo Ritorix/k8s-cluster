@@ -12,15 +12,16 @@ cilium_version: "1.19.1"
 
 # Kubernetes endpoint - for single control plane use first CP node IP
 # For HA, use load balancer VIP or DNS name
-cluster_endpoint: "{{ hostvars[groups['control_plane'][0]]['ansible_host'] }}"
+# Uses static_ip if defined, otherwise falls back to ansible_host
+cluster_endpoint: "{{ hostvars[groups['control_plane'][0]].static_ip | default(hostvars[groups['control_plane'][0]]['ansible_host']) }}"
 cluster_endpoint_port: 6443
 
 # Talos API configuration
 talos_api_port: 50000  # Default Talos API port (do not change unless using custom setup)
 
 # Network configuration
-pod_cidr: "10.244.0.0/16"
-service_cidr: "10.96.0.0/12"
+pod_cidr: "10.244.0.0/16"      # Pod network (10.244.0.0 - 10.244.255.255)
+service_cidr: "10.96.0.0/16"   # Service network (10.96.0.0 - 10.96.255.255) - changed from /12 to avoid overlap with 10.100.x.x hosts
 
 # Node configuration
 install_disk: "/dev/sda"  # Common: /dev/sda, /dev/vda, /dev/nvme0n1
