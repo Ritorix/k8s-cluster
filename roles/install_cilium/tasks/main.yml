@@ -1,0 +1,101 @@
+---
+# Role: install_cilium
+# Install Cilium CNI via cilium CLI in air-gapped environment
+
+- name: Check if Cilium is already installed
+  shell: kubectl get daemonset -n kube-system cilium -o name
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  register: cilium_check
+  ignore_errors: yes
+  changed_when: false
+
+- name: Install Cilium via CLI
+  shell: |
+    cilium install \
+      --version {{ cilium_version }} \
+      --set image.repository={{ cilium_image.repository }} \
+      --set image.tag={{ cilium_image.tag }} \
+      --set image.pullPolicy=IfNotPresent \
+      --set operator.image.repository={{ operator_image.repository }} \
+      --set operator.image.tag={{ operator_image.tag }} \
+      --set operator.image.pullPolicy=IfNotPresent \
+      --set hubble.relay.image.repository={{ hubble_relay_image.repository }} \
+      --set hubble.relay.image.tag={{ hubble_relay_image.tag }} \
+      --set hubble.ui.backend.image.repository={{ hubble_ui_backend_image.repository }} \
+      --set hubble.ui.backend.image.tag={{ hubble_ui_backend_image.tag }} \
+      --set hubble.ui.frontend.image.repository={{ hubble_ui_frontend_image.repository }} \
+      --set hubble.ui.frontend.image.tag={{ hubble_ui_frontend_image.tag }} \
+      --set envoy.image.repository={{ envoy_image.repository }} \
+      --set envoy.image.tag={{ envoy_image.tag }} \
+      --set certgen.image.repository={{ certgen_image.repository }} \
+      --set certgen.image.tag={{ certgen_image.tag }} \
+      --set kubeProxyReplacement={{ cilium_install_settings.kube_proxy_replacement }} \
+      --set k8sServiceHost={{ cilium_install_settings.k8s_service_host }} \
+      --set k8sServicePort={{ cilium_install_settings.k8s_service_port }} \
+      --set ipam.mode={{ cilium_install_settings.ipam_mode }} \
+      --set tunnel={{ cilium_install_settings.tunnel }} \
+      --set ipv4.enabled={{ cilium_install_settings.enable_ipv4 }} \
+      --set ipv6.enabled={{ cilium_install_settings.enable_ipv6 }}
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  when: cilium_check.rc != 0
+  register: cilium_install_result
+
+- name: Display Cilium installation output
+  debug:
+    var: cilium_install_result.stdout_lines
+  when: cilium_install_result is changed
+
+- name: Wait for Cilium to be ready
+  shell: cilium status --wait --wait-duration=5m
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  register: cilium_status
+  retries: 3
+  delay: 10
+  until: cilium_status.rc == 0
+
+- name: Display Cilium status
+  debug:
+    var: cilium_status.stdout_lines
+
+- name: Verify Cilium DaemonSet is ready
+  shell: |
+    kubectl rollout status daemonset/cilium -n kube-system --timeout=5m
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+
+- name: Verify Cilium Operator is ready
+  shell: |
+    kubectl rollout status deployment/cilium-operator -n kube-system --timeout=5m
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+
+- name: Get Cilium pod count
+  shell: |
+    kubectl get pods -n kube-system -l k8s-app=cilium -o json | jq '.items | length'
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  register: cilium_pod_count
+  changed_when: false
+
+- name: Verify Cilium running on all nodes
+  assert:
+    that:
+      - cilium_pod_count.stdout | int == (groups['control_plane'] | length + groups['workers'] | length)
+    fail_msg: "Cilium is not running on all nodes. Expected {{ groups['control_plane'] | length + groups['workers'] | length }}, got {{ cilium_pod_count.stdout }}"
+    success_msg: "Cilium is running on all {{ cilium_pod_count.stdout }} nodes"
+
+- name: Test connectivity (optional)
+  shell: cilium connectivity test --test pod-to-pod
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  when: run_connectivity_test | default(false) | bool
+  register: connectivity_test
+  ignore_errors: yes
+
+- name: Display connectivity test results
+  debug:
+    var: connectivity_test.stdout_lines
+  when: run_connectivity_test | default(false) | bool

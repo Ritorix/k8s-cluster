@@ -1,6 +1,18 @@
 #!/bin/bash
-# Setup a simple local container registry
+# =============================================================================
+# Local Registry Setup Script
+# =============================================================================
+# Setup a simple local container registry for air-gapped deployment
+#
 # Usage: ./setup-registry.sh [port]
+# Example: ./setup-registry.sh 5000
+#
+# Environment Variables:
+#   REGISTRY_DATA - Data directory (default: /var/lib/registry)
+#
+# After setup, run:
+#   ./mirror-all-images.sh localhost:5000
+# =============================================================================
 
 set -e
 

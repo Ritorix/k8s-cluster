@@ -32,72 +32,12 @@
     dest: "{{ talos_config_dir }}/cni-patch.yaml"
     mode: '0644'
 
-- name: Generate Cilium manifest from Helm chart
-  ansible.builtin.command:
-    cmd: >
-      helm template cilium {{ offline_cilium_chart }}
-      --namespace kube-system
-      --set ipam.mode={{ cilium_config.ipam_mode }}
-      --set kubeProxyReplacement={{ cilium_config.kube_proxy_replacement | lower }}
-      --set image.repository={{ local_registry_mirror_prefix }}/cilium/cilium
-      --set image.tag=v{{ cilium_version }}
-      --set operator.image.repository={{ local_registry_mirror_prefix }}/cilium/operator-generic
-      --set operator.image.tag=v{{ cilium_version }}
-      --set hubble.relay.image.repository={{ local_registry_mirror_prefix }}/cilium/hubble-relay
-      --set hubble.relay.image.tag=v{{ cilium_version }}
-      --set hubble.ui.frontend.image.repository={{ local_registry_mirror_prefix }}/cilium/hubble-ui
-      --set hubble.ui.frontend.image.tag={{ cilium_hubble_ui_version }}
-      --set hubble.ui.backend.image.repository={{ local_registry_mirror_prefix }}/cilium/hubble-ui-backend
-      --set hubble.ui.backend.image.tag={{ cilium_hubble_ui_version }}
-      --set envoy.image.repository={{ local_registry_mirror_prefix }}/cilium/cilium-envoy
-      --set envoy.image.tag={{ cilium_envoy_version }}
-      --set certgen.image.repository={{ local_registry_mirror_prefix }}/cilium/certgen
-      --set certgen.image.tag={{ cilium_certgen_version }}
-      --set securityContext.capabilities.ciliumAgent="{CHOWN,KILL,NET_ADMIN,NET_RAW,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}"
-      --set securityContext.capabilities.cleanCiliumState="{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}"
-      --set cgroup.autoMount.enabled=false
-      --set cgroup.hostRoot=/sys/fs/cgroup
-      {% if cilium_config.kube_proxy_replacement %}
-      --set k8sServiceHost=localhost
-      --set k8sServicePort={{ cilium_config.kubeprism_port }}
-      {% endif %}
-      {% if cilium_config.gateway_api_enabled %}
-      --set gatewayAPI.enabled=true
-      --set gatewayAPI.enableAlpn=true
-      --set gatewayAPI.enableAppProtocol=true
-      {% endif %}
-      {% if cilium_config.hubble_enabled %}
-      --set hubble.enabled=true
-      --set hubble.relay.enabled=true
-      {% if cilium_config.hubble_ui_enabled %}
-      --set hubble.ui.enabled=true
-      {% endif %}
-      {% endif %}
-  register: cilium_manifest_output
-  changed_when: true
-
-- name: Save Cilium manifest to file
-  ansible.builtin.copy:
-    content: "{{ cilium_manifest_output.stdout }}"
-    dest: "{{ talos_config_dir }}/cilium-manifest.yaml"
-    mode: '0644'
-
-- name: Generate inline manifest patch
-  ansible.builtin.template:
-    src: inline-manifest-patch.yaml.j2
-    dest: "{{ talos_config_dir }}/inline-manifest-patch.yaml"
-    mode: '0644'
-  vars:
-    cilium_manifest: "{{ cilium_manifest_output.stdout }}"
-
-- name: Combine all patches for controlplane
+- name: Combine patches for controlplane
   ansible.builtin.shell:
     cmd: |
       cat {{ talos_config_dir }}/registry-mirror-patch.yaml > {{ talos_config_dir }}/controlplane-combined-patch.yaml
       echo "---" >> {{ talos_config_dir }}/controlplane-combined-patch.yaml
       cat {{ talos_config_dir }}/cni-patch.yaml >> {{ talos_config_dir }}/controlplane-combined-patch.yaml
-      echo "---" >> {{ talos_config_dir }}/controlplane-combined-patch.yaml
-      cat {{ talos_config_dir }}/inline-manifest-patch.yaml >> {{ talos_config_dir }}/controlplane-combined-patch.yaml
   changed_when: true
 
 - name: Combine all patches for workers
@@ -129,5 +69,6 @@
       - "✓ Control Plane Config: {{ talos_config_dir }}/controlplane.yaml"
       - "✓ Worker Config: {{ talos_config_dir }}/worker.yaml"
       - "✓ Talosconfig: {{ talos_config_dir }}/talosconfig"
-      - "✓ Cilium Manifest: {{ talos_config_dir }}/cilium-manifest.yaml"
+      - "=========================================="
+      - "NOTE: Cilium will be installed via CLI after bootstrap"
       - "=========================================="

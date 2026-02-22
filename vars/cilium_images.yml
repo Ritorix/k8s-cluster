@@ -1,0 +1,113 @@
+---
+# =============================================================================
+# ALL CONTAINER IMAGES CONFIGURATION
+# =============================================================================
+# Edit this file to change any image repository or tag
+# Format: repository (without tag) + tag (version)
+# After editing, mirror images and rerun deployment
+
+# =============================================================================
+# CILIUM CNI IMAGES
+# =============================================================================
+
+cilium_image:
+  repository: "{{ local_registry_url }}/cilium/cilium"
+  tag: "v1.19.1"
+  source: "quay.io/cilium/cilium"  # Original source for mirroring
+
+operator_image:
+  repository: "{{ local_registry_url }}/cilium/operator-generic"
+  tag: "v1.19.1"
+  source: "quay.io/cilium/operator-generic"
+
+hubble_relay_image:
+  repository: "{{ local_registry_url }}/cilium/hubble-relay"
+  tag: "v1.19.1"
+  source: "quay.io/cilium/hubble-relay"
+
+hubble_ui_backend_image:
+  repository: "{{ local_registry_url }}/cilium/hubble-ui-backend"
+  tag: "v0.13.1"
+  source: "quay.io/cilium/hubble-ui-backend"
+
+hubble_ui_frontend_image:
+  repository: "{{ local_registry_url }}/cilium/hubble-ui"
+  tag: "v0.13.1"
+  source: "quay.io/cilium/hubble-ui"
+
+envoy_image:
+  repository: "{{ local_registry_url }}/cilium/cilium-envoy"
+  tag: "v1.35.9-1770979049-232ed4a26881e4ab4f766f251f258ed424fff663"
+  source: "quay.io/cilium/cilium-envoy"
+
+certgen_image:
+  repository: "{{ local_registry_url }}/cilium/certgen"
+  tag: "v0.3.2"
+  source: "quay.io/cilium/certgen"
+
+# =============================================================================
+# KUBERNETES CORE IMAGES
+# =============================================================================
+
+kube_apiserver_image:
+  repository: "{{ local_registry_url }}/kube-apiserver"
+  tag: "v{{ kubernetes_version }}"
+  source: "registry.k8s.io/kube-apiserver"
+
+kube_controller_manager_image:
+  repository: "{{ local_registry_url }}/kube-controller-manager"
+  tag: "v{{ kubernetes_version }}"
+  source: "registry.k8s.io/kube-controller-manager"
+
+kube_scheduler_image:
+  repository: "{{ local_registry_url }}/kube-scheduler"
+  tag: "v{{ kubernetes_version }}"
+  source: "registry.k8s.io/kube-scheduler"
+
+coredns_image:
+  repository: "{{ local_registry_url }}/coredns/coredns"
+  tag: "v1.12.0"
+  source: "registry.k8s.io/coredns/coredns"
+
+pause_image:
+  repository: "{{ local_registry_url }}/pause"
+  tag: "3.11"
+  source: "registry.k8s.io/pause"
+
+etcd_image:
+  repository: "{{ local_registry_url }}/etcd"
+  tag: "3.5.17-0"
+  source: "registry.k8s.io/etcd"
+
+# =============================================================================
+# TALOS SYSTEM IMAGES
+# =============================================================================
+
+talos_installer_image:
+  repository: "{{ local_registry_url }}/siderolabs/installer"
+  tag: "{{ talos_version }}"
+  source: "ghcr.io/siderolabs/installer"
+
+talos_kubelet_image:
+  repository: "{{ local_registry_url }}/siderolabs/kubelet"
+  tag: "v{{ kubernetes_version }}"
+  source: "ghcr.io/siderolabs/kubelet"
+
+# =============================================================================
+# CILIUM INSTALLATION SETTINGS
+# =============================================================================
+
+cilium_install_settings:
+  kube_proxy_replacement: "true"
+  k8s_service_host: "localhost"
+  k8s_service_port: "7445"  # KubePrism port
+  enable_ipv4: "true"
+  enable_ipv6: "false"
+  tunnel: "disabled"  # Use native routing
+  ipam_mode: "kubernetes"
+  
+  # Optional features (set to "true" to enable)
+  enable_hubble: "false"
+  enable_hubble_relay: "false"
+  enable_hubble_ui: "false"
+  enable_gateway_api: "false"

@@ -1,6 +1,14 @@
 #!/bin/bash
-# Script to verify all required images are present in registry
+# =============================================================================
+# Image Verification Script for Air-Gapped Deployment
+# =============================================================================
+# Verify all required images are present in local registry
+#
 # Usage: ./verify-images.sh [registry-url]
+# Example: ./verify-images.sh registry.local:5000
+#
+# Note: Image versions match vars/cilium_images.yml
+# =============================================================================
 
 set -e
 
@@ -14,6 +22,8 @@ echo "Image Verification Script"
 echo "============================================"
 echo "Registry: ${REGISTRY}"
 echo "============================================"
+echo ""
+echo "💡 TIP: Image versions defined in vars/cilium_images.yml"
 echo ""
 
 # Function to check image
@@ -34,13 +44,13 @@ check_image() {
 
 # Check Cilium images
 echo "=== Cilium Images ==="
-check_image "cilium/cilium" "v1.17.2"
-check_image "cilium/operator-generic" "v1.17.2"
-check_image "cilium/hubble-relay" "v1.17.2"
+check_image "cilium/cilium" "v1.19.1"
+check_image "cilium/operator-generic" "v1.19.1"
+check_image "cilium/hubble-relay" "v1.19.1"
 check_image "cilium/hubble-ui" "v0.13.1"
 check_image "cilium/hubble-ui-backend" "v0.13.1"
-check_image "cilium/cilium-envoy" "v1.31.6-1738872074-d9c8b3ad18c67d43c24de78b6b74ed8b3e1eec5e"
-check_image "cilium/certgen" "v0.2.1"
+check_image "cilium/cilium-envoy" "v1.35.9-1770979049-232ed4a26881e4ab4f766f251f258ed424fff663"
+check_image "cilium/certgen" "v0.3.2"
 echo ""
 
 # Check Kubernetes images

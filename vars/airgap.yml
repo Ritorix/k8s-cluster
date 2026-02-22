@@ -1,114 +1,62 @@
 ---
-# Air-gap specific configuration for offline deployment
+# =============================================================================
+# AIR-GAP REGISTRY CONFIGURATION
+# =============================================================================
+# Configure your local container registry here
+# All image definitions are in vars/cilium_images.yml
 
-# Local container registry configuration
-# Format: registry.example.com:5000
+# =============================================================================
+# REGISTRY SETTINGS
+# =============================================================================
+
+# Local container registry URL
+# Format: hostname:port or hostname (if using standard ports)
+# Examples:
+#   - registry.local:5000
+#   - registry.company.com:5000
+#   - myregistry.example.com
 local_registry_url: "registry.local:5000"
 
-# Registry mirror prefix for namespaced images
-# Example: registry.local:5000/docker.io will mirror docker.io images
-local_registry_mirror_prefix: "{{ local_registry_url }}"
-
-# Registry authentication (if required)
-# Store credentials in ansible-vault encrypted file
+# Registry authentication (leave empty if no auth required)
+# SECURITY: Use ansible-vault to encrypt this file if storing credentials
 registry_username: ""
 registry_password: ""
 
-# Path to offline Cilium Helm chart
-offline_cilium_chart: "{{ playbook_dir }}/files/cilium-{{ cilium_version }}.tgz"
-
-# Cilium component versions
-cilium_envoy_version: "v1.31.6-1738872074-d9c8b3ad18c67d43c24de78b6b74ed8b3e1eec5e"
-cilium_hubble_ui_version: "v0.13.1"
-cilium_certgen_version: "v0.2.1"
-
-# Cilium images that need to be mirrored
-cilium_images:
-  - name: cilium
-    source: "quay.io/cilium/cilium"
-    version: "v{{ cilium_version }}"
-    destination: "{{ local_registry_mirror_prefix }}/cilium/cilium"
-  
-  - name: operator
-    source: "quay.io/cilium/operator-generic"
-    version: "v{{ cilium_version }}"
-    destination: "{{ local_registry_mirror_prefix }}/cilium/operator-generic"
-  
-  - name: hubble-relay
-    source: "quay.io/cilium/hubble-relay"
-    version: "v{{ cilium_version }}"
-    destination: "{{ local_registry_mirror_prefix }}/cilium/hubble-relay"
-  
-  - name: hubble-ui
-    source: "quay.io/cilium/hubble-ui"
-    version: "{{ cilium_hubble_ui_version }}"
-    destination: "{{ local_registry_mirror_prefix }}/cilium/hubble-ui"
-  
-  - name: hubble-ui-backend
-    source: "quay.io/cilium/hubble-ui-backend"
-    version: "{{ cilium_hubble_ui_version }}"
-    destination: "{{ local_registry_mirror_prefix }}/cilium/hubble-ui-backend"
-  
-  - name: envoy
-    source: "quay.io/cilium/cilium-envoy"
-    version: "{{ cilium_envoy_version }}"
-    destination: "{{ local_registry_mirror_prefix }}/cilium/cilium-envoy"
-  
-  - name: certgen
-    source: "quay.io/cilium/certgen"
-    version: "{{ cilium_certgen_version }}"
-    destination: "{{ local_registry_mirror_prefix }}/cilium/certgen"
-
-# Kubernetes core images
-kubernetes_images:
-  - name: kube-apiserver
-    source: "registry.k8s.io/kube-apiserver"
-    version: "v{{ kubernetes_version }}"
-    destination: "{{ local_registry_mirror_prefix }}/kube-apiserver"
-  
-  - name: kube-controller-manager
-    source: "registry.k8s.io/kube-controller-manager"
-    version: "v{{ kubernetes_version }}"
-    destination: "{{ local_registry_mirror_prefix }}/kube-controller-manager"
-  
-  - name: kube-scheduler
-    source: "registry.k8s.io/kube-scheduler"
-    version: "v{{ kubernetes_version }}"
-    destination: "{{ local_registry_mirror_prefix }}/kube-scheduler"
-  
-  - name: coredns
-    source: "registry.k8s.io/coredns/coredns"
-    version: "v1.12.0"
-    destination: "{{ local_registry_mirror_prefix }}/coredns/coredns"
-  
-  - name: pause
-    source: "registry.k8s.io/pause"
-    version: "3.11"
-    destination: "{{ local_registry_mirror_prefix }}/pause"
-  
-  - name: etcd
-    source: "registry.k8s.io/etcd"
-    version: "3.5.17-0"
-    destination: "{{ local_registry_mirror_prefix }}/etcd"
-
-# Talos system images
-talos_images:
-  - name: installer
-    source: "ghcr.io/siderolabs/installer"
-    version: "{{ talos_version }}"
-    destination: "{{ local_registry_mirror_prefix }}/siderolabs/installer"
-  
-  - name: kubelet
-    source: "ghcr.io/siderolabs/kubelet"
-    version: "v{{ kubernetes_version }}"
-    destination: "{{ local_registry_mirror_prefix }}/siderolabs/kubelet"
-
-# All images combined for validation
-all_required_images: "{{ cilium_images + kubernetes_images + talos_images }}"
-
-# TLS configuration for registries with self-signed certificates
-# Set to true if using self-signed certs
+# TLS configuration
+# Set to true if registry uses self-signed certificates
 registry_insecure_skip_verify: false
 
-# Optional: Path to CA certificate for registry
+# Optional: Path to CA certificate for registry with self-signed certs
+# Uncomment and set path if needed:
 # registry_ca_cert: "{{ playbook_dir }}/files/registry-ca.crt"
+
+# =============================================================================
+# REGISTRY MIRRORS FOR TALOS
+# =============================================================================
+# These are automatically configured in Talos machine configs
+# No need to edit unless using different registries
+
+registry_mirrors:
+  docker.io:
+    endpoints:
+      - "{{ local_registry_url }}/docker.io"
+  
+  registry.k8s.io:
+    endpoints:
+      - "{{ local_registry_url }}/registry.k8s.io"
+  
+  quay.io:
+    endpoints:
+      - "{{ local_registry_url }}/quay.io"
+  
+  ghcr.io:
+    endpoints:
+      - "{{ local_registry_url }}/ghcr.io"
+
+# =============================================================================
+# NOTES
+# =============================================================================
+# 1. ALL IMAGE DEFINITIONS are in vars/cilium_images.yml
+# 2. Edit cilium_images.yml to change any image repository or tag
+# 3. After editing images, run: ./scripts/mirror-all-images.sh
+# 4. This file only configures the registry connection and mirrors

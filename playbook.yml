@@ -37,6 +37,15 @@
   roles:
     - bootstrap_cluster
 
+- name: Install Cilium CNI
+  hosts: localhost
+  gather_facts: false
+  tags: [cilium]
+  vars_files:
+    - vars/cilium_images.yml
+  roles:
+    - install_cilium
+
 - name: Validate cluster deployment
   hosts: localhost
   gather_facts: false

@@ -139,10 +139,10 @@ helm repo add cilium https://helm.cilium.io/
 helm repo update
 
 # Download chart
-helm pull cilium/cilium --version 1.17.2
+helm pull cilium/cilium --version 1.19.1
 
 # Copy to playbook files directory
-mv cilium-1.17.2.tgz /path/to/k8s-cluster/files/
+mv cilium-1.19.1.tgz /path/to/k8s-cluster/files/
 ```
 
 ## Step 4: Mirror Container Images
@@ -152,13 +152,13 @@ mv cilium-1.17.2.tgz /path/to/k8s-cluster/files/
 The playbook needs these images mirrored to your local registry:
 
 **Cilium Images** (~2GB):
-- quay.io/cilium/cilium:v1.17.2
-- quay.io/cilium/operator-generic:v1.17.2
-- quay.io/cilium/hubble-relay:v1.17.2
+- quay.io/cilium/cilium:v1.19.1
+- quay.io/cilium/operator-generic:v1.19.1
+- quay.io/cilium/hubble-relay:v1.19.1
 - quay.io/cilium/hubble-ui:v0.13.1
 - quay.io/cilium/hubble-ui-backend:v0.13.1
-- quay.io/cilium/cilium-envoy:v1.31.6-1738872074-d9c8b3ad18c67d43c24de78b6b74ed8b3e1eec5e
-- quay.io/cilium/certgen:v0.2.1
+- quay.io/cilium/cilium-envoy:v1.35.9-1770979049-232ed4a26881e4ab4f766f251f258ed424fff663
+- quay.io/cilium/certgen:v0.3.2
 
 **Kubernetes Images** (~1GB):
 - registry.k8s.io/kube-apiserver:v1.32.2
@@ -183,11 +183,11 @@ The playbook needs these images mirrored to your local registry:
 REGISTRY="registry.local:5000"
 
 # Cilium images
-skopeo copy docker://quay.io/cilium/cilium:v1.17.2 \
-  docker://${REGISTRY}/cilium/cilium:v1.17.2 --dest-tls-verify=false
+skopeo copy docker://quay.io/cilium/cilium:v1.19.1 \
+  docker://${REGISTRY}/cilium/cilium:v1.19.1 --dest-tls-verify=false
 
-skopeo copy docker://quay.io/cilium/operator-generic:v1.17.2 \
-  docker://${REGISTRY}/cilium/operator-generic:v1.17.2 --dest-tls-verify=false
+skopeo copy docker://quay.io/cilium/operator-generic:v1.19.1 \
+  docker://${REGISTRY}/cilium/operator-generic:v1.19.1 --dest-tls-verify=false
 
 # Add remaining images...
 
@@ -208,8 +208,8 @@ Run: `bash mirror-images.sh`
 
 REGISTRY="registry.local:5000"
 
-crane cp quay.io/cilium/cilium:v1.17.2 ${REGISTRY}/cilium/cilium:v1.17.2
-crane cp quay.io/cilium/operator-generic:v1.17.2 ${REGISTRY}/cilium/operator-generic:v1.17.2
+crane cp quay.io/cilium/cilium:v1.19.1 ${REGISTRY}/cilium/cilium:v1.19.1
+crane cp quay.io/cilium/operator-generic:v1.19.1 ${REGISTRY}/cilium/operator-generic:v1.19.1
 
 # Continue for all images...
 ```
@@ -233,8 +233,8 @@ mirror_image() {
 }
 
 # Cilium images
-mirror_image quay.io/cilium/cilium:v1.17.2 ${REGISTRY}/cilium/cilium:v1.17.2
-mirror_image quay.io/cilium/operator-generic:v1.17.2 ${REGISTRY}/cilium/operator-generic:v1.17.2
+mirror_image quay.io/cilium/cilium:v1.19.1 ${REGISTRY}/cilium/cilium:v1.19.1
+mirror_image quay.io/cilium/operator-generic:v1.19.1 ${REGISTRY}/cilium/operator-generic:v1.19.1
 
 # Continue for all images...
 ```
@@ -244,8 +244,8 @@ mirror_image quay.io/cilium/operator-generic:v1.17.2 ${REGISTRY}/cilium/operator
 ```bash
 # Save images to tarball
 docker save \
-  quay.io/cilium/cilium:v1.17.2 \
-  quay.io/cilium/operator-generic:v1.17.2 \
+  quay.io/cilium/cilium:v1.19.1 \
+  quay.io/cilium/operator-generic:v1.19.1 \
   ... \
   > k8s-images.tar.gz
 
@@ -255,7 +255,7 @@ docker save \
 docker load < k8s-images.tar.gz
 
 # Tag and push to local registry
-docker tag quay.io/cilium/cilium:v1.17.2 registry.local:5000/cilium/cilium:v1.17.2
+docker tag quay.io/cilium/cilium:v1.19.1 registry.local:5000/cilium/cilium:v1.19.1
 docker push registry.local:5000/cilium/cilium:v1.17.2
 # Repeat for all images...
 ```
