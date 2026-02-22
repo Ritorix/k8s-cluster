@@ -33,6 +33,13 @@
     dest: "{{ talos_config_dir }}/cni-patch.yaml"
     mode: '0644'
 
+- name: Generate time/NTP patch
+  ansible.builtin.template:
+    src: time-patch.yaml.j2
+    dest: "{{ talos_config_dir }}/time-patch.yaml"
+    mode: '0644'
+  when: ntp_servers is defined and ntp_servers | length > 0
+
 - name: Generate static IP patches for each node
   ansible.builtin.template:
     src: static-ip-patch.yaml.j2
@@ -53,6 +60,10 @@
       cat {{ talos_config_dir }}/registry-mirror-patch.yaml > {{ talos_config_dir }}/controlplane-combined-patch.yaml
       echo "---" >> {{ talos_config_dir }}/controlplane-combined-patch.yaml
       cat {{ talos_config_dir }}/cni-patch.yaml >> {{ talos_config_dir }}/controlplane-combined-patch.yaml
+      {% if ntp_servers is defined and ntp_servers | length > 0 %}
+      echo "---" >> {{ talos_config_dir }}/controlplane-combined-patch.yaml
+      cat {{ talos_config_dir }}/time-patch.yaml >> {{ talos_config_dir }}/controlplane-combined-patch.yaml
+      {% endif %}
   changed_when: true
   when: airgap_enabled | default(false)
 
@@ -62,21 +73,33 @@
       cat {{ talos_config_dir }}/registry-mirror-patch.yaml > {{ talos_config_dir }}/worker-combined-patch.yaml
       echo "---" >> {{ talos_config_dir }}/worker-combined-patch.yaml
       cat {{ talos_config_dir }}/cni-patch.yaml >> {{ talos_config_dir }}/worker-combined-patch.yaml
+      {% if ntp_servers is defined and ntp_servers | length > 0 %}
+      echo "---" >> {{ talos_config_dir }}/worker-combined-patch.yaml
+      cat {{ talos_config_dir }}/time-patch.yaml >> {{ talos_config_dir }}/worker-combined-patch.yaml
+      {% endif %}
   changed_when: true
   when: airgap_enabled | default(false)
 
 - name: Use only CNI patch for controlplane (internet-connected)
-  ansible.builtin.copy:
-    src: "{{ talos_config_dir }}/cni-patch.yaml"
-    dest: "{{ talos_config_dir }}/controlplane-combined-patch.yaml"
-    remote_src: yes
+  ansible.builtin.shell:
+    cmd: |
+      cat {{ talos_config_dir }}/cni-patch.yaml > {{ talos_config_dir }}/controlplane-combined-patch.yaml
+      {% if ntp_servers is defined and ntp_servers | length > 0 %}
+      echo "---" >> {{ talos_config_dir }}/controlplane-combined-patch.yaml
+      cat {{ talos_config_dir }}/time-patch.yaml >> {{ talos_config_dir }}/controlplane-combined-patch.yaml
+      {% endif %}
+  changed_when: true
   when: not (airgap_enabled | default(false))
 
 - name: Use only CNI patch for workers (internet-connected)
-  ansible.builtin.copy:
-    src: "{{ talos_config_dir }}/cni-patch.yaml"
-    dest: "{{ talos_config_dir }}/worker-combined-patch.yaml"
-    remote_src: yes
+  ansible.builtin.shell:
+    cmd: |
+      cat {{ talos_config_dir }}/cni-patch.yaml > {{ talos_config_dir }}/worker-combined-patch.yaml
+      {% if ntp_servers is defined and ntp_servers | length > 0 %}
+      echo "---" >> {{ talos_config_dir }}/worker-combined-patch.yaml
+      cat {{ talos_config_dir }}/time-patch.yaml >> {{ talos_config_dir }}/worker-combined-patch.yaml
+      {% endif %}
+  changed_when: true
   when: not (airgap_enabled | default(false))
 
 - name: Generate Talos machine configurations
@@ -100,6 +123,10 @@
       - "✓ Control Plane Config: {{ talos_config_dir }}/controlplane.yaml"
       - "✓ Worker Config: {{ talos_config_dir }}/worker.yaml"
       - "✓ Talosconfig: {{ talos_config_dir }}/talosconfig"
-      - "=========================================="
-      - "NOTE: Cilium will be installed via CLI after bootstrap"
+      - ""
+      - "Configuration includes:"
+      - "{% if airgap_enabled | default(false) %}  • Registry mirrors (air-gapped mode){% endif %}"
+      - "  • CNI disabled (Cilium installed post-bootstrap)"
+      - "{% if ntp_servers is defined and ntp_servers | length > 0 %}  • NTP servers configured: {{ ntp_servers | join(', ') }}{% endif %}"
+      - "{% if groups['control_plane'] | map('extract', hostvars) | selectattr('static_ip', 'defined') | list | length > 0 %}  • Static IP configuration for nodes{% endif %}"
       - "=========================================="

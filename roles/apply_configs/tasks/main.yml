@@ -55,18 +55,41 @@
   ansible.builtin.debug:
     msg: "✓ Configuration applied to {{ groups['workers'] | length }} worker node(s){% if groups['workers'] | map('extract', hostvars) | selectattr('static_ip', 'defined') | list | length > 0 %} with static IPs{% endif %}"
 
+- name: Wait for nodes with static IPs to reconfigure
+  ansible.builtin.pause:
+    seconds: 15
+    prompt: "Waiting for nodes to apply static IP configuration..."
+  when: groups['control_plane'] | map('extract', hostvars) | selectattr('static_ip', 'defined') | list | length > 0
+
+- name: Check if static IPs are reachable for control plane nodes
+  ansible.builtin.wait_for:
+    host: "{{ hostvars[item].static_ip }}"
+    port: "{{ talos_api_port }}"
+    timeout: 10
+    state: started
+  loop: "{{ groups['control_plane'] }}"
+  when: hostvars[item].static_ip is defined
+  register: static_ip_check
+  failed_when: false
+  changed_when: false
+
+- name: Set effective control plane IPs (static if reachable, otherwise DHCP)
+  ansible.builtin.set_fact:
+    effective_cp_ips: "{{ effective_cp_ips | default({}) | combine({item: hostvars[item].static_ip if (hostvars[item].static_ip is defined and static_ip_check.results | selectattr('item', 'equalto', item) | map(attribute='failed') | first == false) else hostvars[item].ansible_host}) }}"
+  loop: "{{ groups['control_plane'] }}"
+
 - name: Configure talosctl endpoints
   ansible.builtin.command:
     cmd: >
       talosctl config endpoint
-      {% for host in groups['control_plane'] %}{{ hostvars[host]['ansible_host'] }}{{ ' ' if not loop.last else '' }}{% endfor %}
+      {% for host in groups['control_plane'] %}{{ effective_cp_ips[host] }}{{ ' ' if not loop.last else '' }}{% endfor %}
       --talosconfig {{ talos_config_dir }}/talosconfig
   changed_when: true
 
 - name: Set default talosctl node
   ansible.builtin.command:
     cmd: >
-      talosctl config node {{ hostvars[groups['control_plane'][0]]['ansible_host'] }}
+      talosctl config node {{ effective_cp_ips[groups['control_plane'][0]] }}
       --talosconfig {{ talos_config_dir }}/talosconfig
   changed_when: true
 
@@ -84,8 +107,10 @@
       - "✓ {{ groups['control_plane'] | length }} control plane node(s) configured"
       - "✓ {{ groups['workers'] | length }} worker node(s) configured"
       - "✓ Talosctl endpoints configured"
-      - "{% if hostvars[groups['control_plane'][0]].static_ip is defined %}✓ Static IPs configured{% endif %}"
       - ""
-      - "{% if airgap_enabled | default(false) %}Nodes will pull images from: {{ local_registry_url }}{% else %}Nodes will pull images from public registries{% endif %}"
-      - "Next: Bootstrap the cluster"
+      - "Active Control Plane IPs:"
+      - "{% for host in groups['control_plane'] %}  • {{ host }}: {{ effective_cp_ips[host] }}{% if hostvars[host].static_ip is defined and effective_cp_ips[host] == hostvars[host].static_ip %} (static){% elif hostvars[host].static_ip is defined %} (DHCP - static IP not reachable yet){% endif %}{{ '\n' if not loop.last else '' }}{% endfor %}"
+      - ""
+      - "{% if airgap_enabled | default(false) %}Images: {{ local_registry_url }}{% else %}Images: Public registries{% endif %}"
+      - "Next: ansible-playbook -i inventory/hosts.yml playbook.yml --tags bootstrap"
       - "=========================================="

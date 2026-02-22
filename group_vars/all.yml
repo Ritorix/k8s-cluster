@@ -34,9 +34,19 @@ dns_servers:
  - 172.27.10.234
 #   - 8.8.8.8
 
-# NTP servers (optional)
-# ntp_servers:
-#   - time.cloudflare.com
+# NTP servers (optional, defaults to time.cloudflare.com)
+# Uncomment and choose appropriate servers for your environment
+ntp_servers:
+  - time.cloudflare.com      # Cloudflare (anycast, global)
+  - time.google.com          # Google (anycast, global)
+#   - ntp.ubuntu.com          # Ubuntu NTP pool
+#   - pool.ntp.org            # Global NTP pool
+#   - 0.pool.ntp.org          # NTP pool (load balanced)
+#   - 1.pool.ntp.org
+#   - time.windows.com        # Microsoft NTP
+#   - time.nist.gov           # NIST (US)
+#   - ntp1.hetzner.de         # Hetzner (if using Hetzner)
+#   - 172.27.10.234           # Internal NTP server (if you have one)
 
 # Talos system extensions (optional)
 # talos_system_extensions:

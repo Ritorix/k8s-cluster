@@ -1,0 +1,9 @@
+# Time configuration patch
+{% if ntp_servers is defined and ntp_servers | length > 0 %}
+machine:
+  time:
+    servers:
+{% for ntp in ntp_servers %}
+      - {{ ntp }}
+{% endfor %}
+{% endif %}

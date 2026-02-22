@@ -5,11 +5,37 @@
   ansible.builtin.debug:
     msg: "Bootstrapping Kubernetes cluster..."
 
+- name: Determine control plane IP to use (static if reachable, otherwise DHCP)
+  ansible.builtin.set_fact:
+    bootstrap_cp_ip: "{{ hostvars[groups['control_plane'][0]].static_ip | default(hostvars[groups['control_plane'][0]].ansible_host) }}"
+
+- name: Check if static IP is reachable
+  ansible.builtin.wait_for:
+    host: "{{ hostvars[groups['control_plane'][0]].static_ip }}"
+    port: "{{ talos_api_port }}"
+    timeout: 5
+    state: started
+  when: hostvars[groups['control_plane'][0]].static_ip is defined
+  register: cp_static_check
+  failed_when: false
+  changed_when: false
+
+- name: Use DHCP IP if static not reachable
+  ansible.builtin.set_fact:
+    bootstrap_cp_ip: "{{ hostvars[groups['control_plane'][0]].ansible_host }}"
+  when: 
+    - hostvars[groups['control_plane'][0]].static_ip is defined
+    - cp_static_check.failed | default(false)
+
+- name: Display IP being used for bootstrap
+  ansible.builtin.debug:
+    msg: "Using control plane IP: {{ bootstrap_cp_ip }}{% if hostvars[groups['control_plane'][0]].static_ip is defined and bootstrap_cp_ip == hostvars[groups['control_plane'][0]].static_ip %} (static){% elif hostvars[groups['control_plane'][0]].static_ip is defined %} (DHCP fallback){% endif %}"
+
 - name: Check if cluster is already bootstrapped
   ansible.builtin.command:
     cmd: >
       talosctl kubeconfig --force
-      --nodes {{ hostvars[groups['control_plane'][0]]['ansible_host'] }}
+      --nodes {{ bootstrap_cp_ip }}
       --talosconfig {{ talos_config_dir }}/talosconfig
       {{ kubeconfig_file }}
   register: kubeconfig_check
@@ -28,7 +54,7 @@
   ansible.builtin.command:
     cmd: >
       talosctl health
-      --nodes {{ hostvars[groups['control_plane'][0]]['ansible_host'] }}
+      --nodes {{ bootstrap_cp_ip }}
       --talosconfig {{ talos_config_dir }}/talosconfig
       --wait-timeout {{ node_ready_timeout }}s
   register: health_check
@@ -43,7 +69,7 @@
   ansible.builtin.command:
     cmd: >
       talosctl bootstrap
-      --nodes {{ hostvars[groups['control_plane'][0]]['ansible_host'] }}
+      --nodes {{ bootstrap_cp_ip }}
       --talosconfig {{ talos_config_dir }}/talosconfig
   when: bootstrap_needed
   register: bootstrap_result
@@ -66,7 +92,7 @@
   ansible.builtin.command:
     cmd: >
       talosctl kubeconfig --force
-      --nodes {{ hostvars[groups['control_plane'][0]]['ansible_host'] }}
+      --nodes {{ bootstrap_cp_ip }}
       --talosconfig {{ talos_config_dir }}/talosconfig
       {{ kubeconfig_file }}
   changed_when: true
