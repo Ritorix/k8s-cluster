@@ -80,6 +80,31 @@
   ansible.builtin.debug:
     msg: "✓ helm: {{ helm_check.stdout }}"
 
+- name: Check for yq binary
+  ansible.builtin.command: yq --version
+  register: yq_check
+  failed_when: false
+  changed_when: false
+
+- name: Fail if yq is not installed
+  ansible.builtin.fail:
+    msg: |
+      yq is not installed or not in PATH.
+      
+      Please install yq (YAML processor):
+      Linux:
+        wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+        chmod +x /usr/local/bin/yq
+      
+      Mac: brew install yq
+      
+      For air-gapped environments, download from a connected machine and copy.
+  when: yq_check.rc != 0
+
+- name: Display yq version
+  ansible.builtin.debug:
+    msg: "✓ yq: {{ yq_check.stdout_lines[0] }}"
+
 - name: Test connectivity to control plane nodes
   ansible.builtin.wait_for:
     host: "{{ hostvars[item]['ansible_host'] }}"
@@ -119,6 +144,7 @@
       - "✓ talosctl installed"
       - "✓ kubectl installed"
       - "✓ helm installed"
+      - "✓ yq installed"
       - "✓ Working directory: {{ talos_config_dir }}"
       - "Note: Node connectivity will be retried during deployment"
       - "=========================================="

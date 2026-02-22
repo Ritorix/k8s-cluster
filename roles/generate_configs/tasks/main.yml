@@ -57,56 +57,50 @@
 - name: Combine patches for controlplane (air-gapped)
   ansible.builtin.shell:
     cmd: |
-      {
-        cat {{ talos_config_dir }}/registry-mirror-patch.yaml
-        echo "---"
-        cat {{ talos_config_dir }}/cni-patch.yaml
-        {% if ntp_servers is defined and ntp_servers | length > 0 %}
-        echo "---"
-        cat {{ talos_config_dir }}/time-patch.yaml
-        {% endif %}
-      } > {{ talos_config_dir }}/controlplane-combined-patch.yaml
+      yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1){% if ntp_servers is defined and ntp_servers | length > 0 %} * select(fileIndex == 2){% endif %}' \
+        {{ talos_config_dir }}/registry-mirror-patch.yaml \
+        {{ talos_config_dir }}/cni-patch.yaml \
+        {% if ntp_servers is defined and ntp_servers | length > 0 %}{{ talos_config_dir }}/time-patch.yaml{% endif %} \
+        > {{ talos_config_dir }}/controlplane-combined-patch.yaml
   changed_when: true
   when: airgap_enabled | default(false)
 
 - name: Combine patches for workers (air-gapped)
   ansible.builtin.shell:
     cmd: |
-      {
-        cat {{ talos_config_dir }}/registry-mirror-patch.yaml
-        echo "---"
-        cat {{ talos_config_dir }}/cni-patch.yaml
-        {% if ntp_servers is defined and ntp_servers | length > 0 %}
-        echo "---"
-        cat {{ talos_config_dir }}/time-patch.yaml
-        {% endif %}
-      } > {{ talos_config_dir }}/worker-combined-patch.yaml
+      yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1){% if ntp_servers is defined and ntp_servers | length > 0 %} * select(fileIndex == 2){% endif %}' \
+        {{ talos_config_dir }}/registry-mirror-patch.yaml \
+        {{ talos_config_dir }}/cni-patch.yaml \
+        {% if ntp_servers is defined and ntp_servers | length > 0 %}{{ talos_config_dir }}/time-patch.yaml{% endif %} \
+        > {{ talos_config_dir }}/worker-combined-patch.yaml
   changed_when: true
   when: airgap_enabled | default(false)
 
 - name: Use only CNI patch for controlplane (internet-connected)
   ansible.builtin.shell:
     cmd: |
-      {
-        cat {{ talos_config_dir }}/cni-patch.yaml
-        {% if ntp_servers is defined and ntp_servers | length > 0 %}
-        echo "---"
-        cat {{ talos_config_dir }}/time-patch.yaml
-        {% endif %}
-      } > {{ talos_config_dir }}/controlplane-combined-patch.yaml
+      {% if ntp_servers is defined and ntp_servers | length > 0 %}
+      yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' \
+        {{ talos_config_dir }}/cni-patch.yaml \
+        {{ talos_config_dir }}/time-patch.yaml \
+        > {{ talos_config_dir }}/controlplane-combined-patch.yaml
+      {% else %}
+      cp {{ talos_config_dir }}/cni-patch.yaml {{ talos_config_dir }}/controlplane-combined-patch.yaml
+      {% endif %}
   changed_when: true
   when: not (airgap_enabled | default(false))
 
 - name: Use only CNI patch for workers (internet-connected)
   ansible.builtin.shell:
     cmd: |
-      {
-        cat {{ talos_config_dir }}/cni-patch.yaml
-        {% if ntp_servers is defined and ntp_servers | length > 0 %}
-        echo "---"
-        cat {{ talos_config_dir }}/time-patch.yaml
-        {% endif %}
-      } > {{ talos_config_dir }}/worker-combined-patch.yaml
+      {% if ntp_servers is defined and ntp_servers | length > 0 %}
+      yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' \
+        {{ talos_config_dir }}/cni-patch.yaml \
+        {{ talos_config_dir }}/time-patch.yaml \
+        > {{ talos_config_dir }}/worker-combined-patch.yaml
+      {% else %}
+      cp {{ talos_config_dir }}/cni-patch.yaml {{ talos_config_dir }}/worker-combined-patch.yaml
+      {% endif %}
   changed_when: true
   when: not (airgap_enabled | default(false))
 
