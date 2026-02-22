@@ -73,7 +73,7 @@
 - name: Wait for nodes to process configuration
   ansible.builtin.pause:
     seconds: 30
-    prompt: "Waiting for nodes to process configuration and pull images from local registry..."
+    prompt: "Waiting for nodes to process configuration..."
 
 - name: Display configuration summary
   ansible.builtin.debug:
@@ -84,7 +84,8 @@
       - "✓ {{ groups['control_plane'] | length }} control plane node(s) configured"
       - "✓ {{ groups['workers'] | length }} worker node(s) configured"
       - "✓ Talosctl endpoints configured"
+      - "{% if hostvars[groups['control_plane'][0]].static_ip is defined %}✓ Static IPs configured{% endif %}"
       - ""
-      - "Nodes are now pulling images from: {{ local_registry_url }}"
+      - "{% if airgap_enabled | default(false) %}Nodes will pull images from: {{ local_registry_url }}{% else %}Nodes will pull images from public registries{% endif %}"
       - "Next: Bootstrap the cluster"
       - "=========================================="
