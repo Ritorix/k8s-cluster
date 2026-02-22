@@ -1,0 +1,88 @@
+---
+# Tasks for applying configurations to Talos nodes
+
+- name: Display apply configuration banner
+  ansible.builtin.debug:
+    msg: "Applying configurations to Talos nodes..."
+
+- name: Wait for control plane nodes to be reachable
+  ansible.builtin.wait_for:
+    host: "{{ hostvars[item]['ansible_host'] }}"
+    port: 50000
+    timeout: "{{ node_ready_timeout }}"
+    state: started
+  loop: "{{ groups['control_plane'] }}"
+  register: cp_wait
+
+- name: Apply configuration to control plane nodes
+  ansible.builtin.command:
+    cmd: >
+      talosctl apply-config
+      --insecure
+      --nodes {{ hostvars[item]['ansible_host'] }}
+      --file {{ talos_config_dir }}/controlplane.yaml
+  loop: "{{ groups['control_plane'] }}"
+  register: cp_apply
+  changed_when: true
+
+- name: Display control plane application status
+  ansible.builtin.debug:
+    msg: "✓ Configuration applied to {{ groups['control_plane'] | length }} control plane node(s)"
+
+- name: Wait for worker nodes to be reachable
+  ansible.builtin.wait_for:
+    host: "{{ hostvars[item]['ansible_host'] }}"
+    port: 50000
+    timeout: "{{ node_ready_timeout }}"
+    state: started
+  loop: "{{ groups['workers'] }}"
+  register: worker_wait
+
+- name: Apply configuration to worker nodes
+  ansible.builtin.command:
+    cmd: >
+      talosctl apply-config
+      --insecure
+      --nodes {{ hostvars[item]['ansible_host'] }}
+      --file {{ talos_config_dir }}/worker.yaml
+  loop: "{{ groups['workers'] }}"
+  register: worker_apply
+  changed_when: true
+
+- name: Display worker application status
+  ansible.builtin.debug:
+    msg: "✓ Configuration applied to {{ groups['workers'] | length }} worker node(s)"
+
+- name: Configure talosctl endpoints
+  ansible.builtin.command:
+    cmd: >
+      talosctl config endpoint
+      {% for host in groups['control_plane'] %}{{ hostvars[host]['ansible_host'] }}{{ ' ' if not loop.last else '' }}{% endfor %}
+      --talosconfig {{ talos_config_dir }}/talosconfig
+  changed_when: true
+
+- name: Set default talosctl node
+  ansible.builtin.command:
+    cmd: >
+      talosctl config node {{ hostvars[groups['control_plane'][0]]['ansible_host'] }}
+      --talosconfig {{ talos_config_dir }}/talosconfig
+  changed_when: true
+
+- name: Wait for nodes to process configuration
+  ansible.builtin.pause:
+    seconds: 30
+    prompt: "Waiting for nodes to process configuration and pull images from local registry..."
+
+- name: Display configuration summary
+  ansible.builtin.debug:
+    msg:
+      - "=========================================="
+      - "Configuration Applied Successfully"
+      - "=========================================="
+      - "✓ {{ groups['control_plane'] | length }} control plane node(s) configured"
+      - "✓ {{ groups['workers'] | length }} worker node(s) configured"
+      - "✓ Talosctl endpoints configured"
+      - ""
+      - "Nodes are now pulling images from: {{ local_registry_url }}"
+      - "Next: Bootstrap the cluster"
+      - "=========================================="

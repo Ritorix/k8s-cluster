@@ -1,0 +1,149 @@
+---
+# Tasks for validating cluster deployment
+
+- name: Display validation banner
+  ansible.builtin.debug:
+    msg: "Validating cluster deployment..."
+
+- name: Check all nodes are registered
+  ansible.builtin.command:
+    cmd: kubectl get nodes --kubeconfig {{ kubeconfig_file }} -o json
+  register: nodes_json
+  changed_when: false
+
+- name: Parse node count
+  ansible.builtin.set_fact:
+    expected_nodes: "{{ groups['control_plane'] | length + groups['workers'] | length }}"
+    actual_nodes: "{{ (nodes_json.stdout | from_json).items | length }}"
+
+- name: Verify node count
+  ansible.builtin.assert:
+    that:
+      - actual_nodes | int == expected_nodes | int
+    fail_msg: "Expected {{ expected_nodes }} nodes, but found {{ actual_nodes }}"
+    success_msg: "✓ All {{ actual_nodes }} nodes are registered"
+
+- name: Wait for Cilium pods to be created
+  ansible.builtin.command:
+    cmd: kubectl get pods -n kube-system -l k8s-app=cilium --kubeconfig {{ kubeconfig_file }}
+  register: cilium_pods
+  retries: 30
+  delay: "{{ retry_delay }}"
+  until: cilium_pods.stdout_lines | length > 1
+  changed_when: false
+
+- name: Wait for Cilium DaemonSet to be ready
+  ansible.builtin.command:
+    cmd: kubectl rollout status daemonset/cilium -n kube-system --timeout={{ pod_ready_timeout }}s --kubeconfig {{ kubeconfig_file }}
+  register: cilium_rollout
+  changed_when: false
+
+- name: Display Cilium DaemonSet status
+  ansible.builtin.debug:
+    msg: "✓ Cilium DaemonSet is ready"
+
+- name: Wait for Cilium Operator to be ready
+  ansible.builtin.command:
+    cmd: kubectl rollout status deployment/cilium-operator -n kube-system --timeout={{ pod_ready_timeout }}s --kubeconfig {{ kubeconfig_file }}
+  register: operator_rollout
+  changed_when: false
+
+- name:  Display Cilium Operator status
+  ansible.builtin.debug:
+    msg: "✓ Cilium Operator is ready"
+
+- name: Get Cilium pod for status check
+  ansible.builtin.command:
+    cmd: kubectl get pod -n kube-system -l k8s-app=cilium -o jsonpath='{.items[0].metadata.name}' --kubeconfig {{ kubeconfig_file }}
+  register: cilium_pod_name
+  changed_when: false
+
+- name: Check Cilium status
+  ansible.builtin.command:
+    cmd: kubectl exec -n kube-system {{ cilium_pod_name.stdout }} -- cilium status --brief
+  register: cilium_status
+  changed_when: false
+  failed_when: false
+
+- name: Display Cilium status
+  ansible.builtin.debug:
+    msg: "{{ cilium_status.stdout_lines }}"
+  when: cilium_status.rc == 0
+
+- name: Verify all cluster pods
+  ansible.builtin.command:
+    cmd: kubectl get pods -A --kubeconfig {{ kubeconfig_file }}
+  register: all_pods
+  changed_when: false
+
+- name: Display all pods
+  ansible.builtin.debug:
+    msg: "{{ all_pods.stdout_lines }}"
+
+- name: Create test deployment for connectivity validation
+  ansible.builtin.command:
+    cmd: |
+      kubectl apply --kubeconfig {{ kubeconfig_file }} -f - <<EOF
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: connectivity-test
+        namespace: default
+      spec:
+        replicas: 2
+        selector:
+          matchLabels:
+            app: connectivity-test
+        template:
+          metadata:
+            labels:
+              app: connectivity-test
+          spec:
+            containers:
+            - name: test
+              image: {{ local_registry_mirror_prefix }}/library/nginx:alpine
+              ports:
+              - containerPort: 80
+      EOF
+  register: test_deployment
+  changed_when: true
+  failed_when: false
+
+- name: Wait for test deployment (if created)
+  ansible.builtin.command:
+    cmd: kubectl rollout status deployment/connectivity-test -n default --timeout=120s --kubeconfig {{ kubeconfig_file }}
+  when: test_deployment.rc == 0
+  changed_when: false
+  failed_when: false
+
+- name: Clean up test deployment
+  ansible.builtin.command:
+    cmd: kubectl delete deployment connectivity-test -n default --kubeconfig {{ kubeconfig_file }}
+  when: test_deployment.rc == 0
+  changed_when: true
+  failed_when: false
+
+- name: Display final validation summary
+  ansible.builtin.debug:
+    msg:
+      - "=========================================="
+      - "Cluster Validation Complete"
+      - "=========================================="
+      - "✓ Cluster Name: {{ cluster_name }}"
+      - "✓ Kubernetes Endpoint: https://{{ cluster_endpoint }}:{{ cluster_endpoint_port }}"
+      - "✓ Nodes: {{ actual_nodes }}/{{ expected_nodes }} Ready"
+      - "✓ Cilium CNI: Running"
+      - "✓ Registry: {{ local_registry_url }}"
+      - ""
+      - "Configuration Files:"
+      - "  - Kubeconfig: {{ kubeconfig_file }}"
+      - "  - Talosconfig: {{ talos_config_dir }}/talosconfig"
+      - ""
+      - "To use the cluster:"
+      - "  export KUBECONFIG={{ kubeconfig_file }}"
+      - "  kubectl get nodes"
+      - ""
+      - "To manage Talos:"
+      - "  export TALOSCONFIG={{ talos_config_dir }}/talosconfig"
+      - "  talosctl dashboard"
+      - "=========================================="

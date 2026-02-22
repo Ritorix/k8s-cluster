@@ -1,0 +1,124 @@
+---
+# Tasks for installing and validating prerequisites
+
+- name: Create working directory
+  ansible.builtin.file:
+    path: "{{ talos_config_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Check for talosctl binary
+  ansible.builtin.command: talosctl version --client
+  register: talosctl_check
+  failed_when: false
+  changed_when: false
+
+- name: Fail if talosctl is not installed
+  ansible.builtin.fail:
+    msg: |
+      talosctl is not installed or not in PATH.
+      
+      Please install talosctl:
+      Windows PowerShell:
+        $version = "{{ talos_version }}"
+        Invoke-WebRequest "https://github.com/siderolabs/talos/releases/download/$version/talosctl-windows-amd64.exe" -OutFile talosctl.exe
+        Move-Item talosctl.exe C:\Windows\System32\talosctl.exe
+      
+      Linux/Mac:
+        curl -sL https://talos.dev/install | sh
+      
+      For air-gapped environments, download from a connected machine and copy.
+  when: talosctl_check.rc != 0
+
+- name: Display talosctl version
+  ansible.builtin.debug:
+    msg: "✓ talosctl: {{ talosctl_check.stdout_lines[0] }}"
+
+- name: Check for kubectl binary
+  ansible.builtin.command: kubectl version --client=true --output=yaml
+  register: kubectl_check
+  failed_when: false
+  changed_when: false
+
+- name: Fail if kubectl is not installed
+  ansible.builtin.fail:
+    msg: |
+      kubectl is not installed or not in PATH.
+      
+      Please install kubectl:
+      Windows: choco install kubernetes-cli
+      Linux: See https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/
+      Mac: brew install kubectl
+      
+      For air-gapped environments, download from a connected machine and copy.
+  when: kubectl_check.rc != 0
+
+- name: Display kubectl version
+  ansible.builtin.debug:
+    msg: "✓ kubectl: Client version detected"
+
+- name: Check for helm binary
+  ansible.builtin.command: helm version --template="{{ '{{' }}.Version{{ '}}' }}"
+  register: helm_check
+  failed_when: false
+  changed_when: false
+
+- name: Fail if helm is not installed
+  ansible.builtin.fail:
+    msg: |
+      helm is not installed or not in PATH.
+      
+      Please install helm:
+      Windows: choco install kubernetes-helm
+      Linux: See https://helm.sh/docs/intro/install/
+      Mac: brew install helm
+      
+      For air-gapped environments, download from a connected machine and copy.
+  when: helm_check.rc != 0
+
+- name: Display helm version
+  ansible.builtin.debug:
+    msg: "✓ helm: {{ helm_check.stdout }}"
+
+- name: Test connectivity to control plane nodes
+  ansible.builtin.wait_for:
+    host: "{{ hostvars[item]['ansible_host'] }}"
+    port: 50000
+    timeout: 5
+    state: started
+  loop: "{{ groups['control_plane'] }}"
+  register: cp_connectivity
+  failed_when: false
+  changed_when: false
+
+- name: Display connectivity status for control plane nodes
+  ansible.builtin.debug:
+    msg: "Control plane nodes connectivity check (port 50000): {{ cp_connectivity.results | map(attribute='state') | list }}"
+
+- name: Test connectivity to worker nodes
+  ansible.builtin.wait_for:
+    host: "{{ hostvars[item]['ansible_host'] }}"
+    port: 50000
+    timeout: 5
+    state: started
+  loop: "{{ groups['workers'] }}"
+  register: worker_connectivity
+  failed_when: false
+  changed_when: false
+
+- name: Display connectivity status for worker nodes
+  ansible.builtin.debug:
+    msg: "Worker nodes connectivity check (port 50000): {{ worker_connectivity.results | map(attribute='state') | list }}"
+
+- name: Display prerequisites summary
+  ansible.builtin.debug:
+    msg:
+      - "=========================================="
+      - "Prerequisites Validation Complete"
+      - "=========================================="
+      - "✓ talosctl installed"
+      - "✓ kubectl installed"
+      - "✓ helm installed"
+      - "✓ Working directory: {{ talos_config_dir }}"
+      - "Note: Node connectivity will be retried during deployment"
+      - "=========================================="

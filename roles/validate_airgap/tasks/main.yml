@@ -1,0 +1,95 @@
+---
+# Tasks for validating air-gapped environment prerequisites
+
+- name: Display air-gap validation banner
+  ansible.builtin.debug:
+    msg: "Validating air-gapped environment prerequisites..."
+
+- name: Check if local registry is accessible
+  ansible.builtin.uri:
+    url: "https://{{ local_registry_url }}/v2/"
+    method: GET
+    validate_certs: "{{ not registry_insecure_skip_verify }}"
+    status_code: [200, 401]  # 401 is OK if auth is required
+    timeout: 10
+  register: registry_check
+  failed_when: false
+  changed_when: false
+
+- name: Fail if registry is not accessible
+  ansible.builtin.fail:
+    msg: |
+      Local registry at {{ local_registry_url }} is not accessible.
+      Please ensure:
+      1. Registry is running
+      2. Network connectivity from Ansible controller to registry
+      3. Firewall rules allow access
+      4. DNS resolution is working
+  when: registry_check.status is not defined or registry_check.status not in [200, 401]
+
+- name: Display registry status
+  ansible.builtin.debug:
+    msg: "✓ Local registry {{ local_registry_url }} is accessible"
+
+- name: Check if offline Cilium Helm chart exists
+  ansible.builtin.stat:
+    path: "{{ offline_cilium_chart }}"
+  register: cilium_chart_check
+
+- name: Fail if Cilium chart is missing
+  ansible.builtin.fail:
+    msg: |
+      Offline Cilium Helm chart not found at: {{ offline_cilium_chart }}
+      
+      Please download the chart:
+      1. From a connected environment run:
+         helm repo add cilium https://helm.cilium.io/
+         helm repo update
+         helm pull cilium/cilium --version {{ cilium_version }}
+      2. Copy the chart to: {{ offline_cilium_chart }}
+  when: not cilium_chart_check.stat.exists
+
+- name: Display Cilium chart status
+  ansible.builtin.debug:
+    msg: "✓ Offline Cilium chart found at {{ offline_cilium_chart }}"
+
+- name: Check critical images in registry (sample check)
+  ansible.builtin.uri:
+    url: "https://{{ local_registry_url }}/v2/{{ item.destination | regex_replace(local_registry_url + '/', '') }}/tags/list"
+    method: GET
+    validate_certs: "{{ not registry_insecure_skip_verify }}"
+    user: "{{ registry_username | default(omit) }}"
+    password: "{{ registry_password | default(omit) }}"
+    force_basic_auth: "{{ true if registry_username else false }}"
+    status_code: [200]
+  loop:
+    - "{{ cilium_images[0] }}"  # Check Cilium main image
+    - "{{ kubernetes_images[0] }}"  # Check kube-apiserver
+  register: image_check
+  failed_when: false
+  changed_when: false
+
+- name: Warning if some images may be missing
+  ansible.builtin.debug:
+    msg: |
+      WARNING: Could not verify all images in registry.
+      This may be due to:
+      1. Images not yet mirrored
+      2. Different image naming convention
+      3. Registry authentication issues
+      
+      The playbook will continue, but image pulls may fail during deployment.
+      
+      To mirror images, see docs/AIRGAP.md for instructions.
+  when: image_check.results | selectattr('status', 'undefined') | list | length > 0
+
+- name: Display validation summary
+  ansible.builtin.debug:
+    msg:
+      - "=========================================="
+      - "Air-Gap Environment Validation Complete"
+      - "=========================================="
+      - "✓ Registry: {{ local_registry_url }}"
+      - "✓ Cilium Chart: Available"
+      - "✓ Ready to proceed with deployment"
+      - "=========================================="

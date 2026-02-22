@@ -1,0 +1,10 @@
+---
+# Patch for disabling default CNI and kube-proxy
+cluster:
+  network:
+    cni:
+      name: none
+{% if cilium_config.kube_proxy_replacement %}
+  proxy:
+    disabled: true
+{% endif %}

@@ -1,0 +1,29 @@
+---
+# Patch for configuring registry mirrors in Talos
+machine:
+  registries:
+    mirrors:
+      docker.io:
+        endpoints:
+          - https://{{ local_registry_mirror_prefix }}/docker.io
+      registry.k8s.io:
+        endpoints:
+          - https://{{ local_registry_mirror_prefix }}/registry.k8s.io
+      quay.io:
+        endpoints:
+          - https://{{ local_registry_mirror_prefix }}/quay.io
+      ghcr.io:
+        endpoints:
+          - https://{{ local_registry_mirror_prefix }}/ghcr.io
+{% if not registry_insecure_skip_verify and registry_ca_cert is defined %}
+    config:
+      {{ local_registry_url }}:
+        tls:
+          ca: |
+{{ lookup('file', registry_ca_cert) | indent(12, first=True) }}
+{% elif registry_insecure_skip_verify %}
+    config:
+      {{ local_registry_url }}:
+        tls:
+          insecureSkipVerify: true
+{% endif %}

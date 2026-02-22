@@ -1,0 +1,133 @@
+---
+# Tasks for generating Talos configurations with Cilium
+
+- name: Display configuration generation banner
+  ansible.builtin.debug:
+    msg: "Generating Talos cluster configurations..."
+
+- name: Check if secrets file already exists
+  ansible.builtin.stat:
+    path: "{{ talos_secrets_file }}"
+  register: secrets_check
+
+- name: Generate Talos secrets bundle
+  ansible.builtin.command:
+    cmd: talosctl gen secrets -o "{{ talos_secrets_file }}"
+  when: not secrets_check.stat.exists
+  changed_when: true
+
+- name: Display secrets status
+  ansible.builtin.debug:
+    msg: "{{ '✓ Generated new secrets' if not secrets_check.stat.exists else '✓ Using existing secrets from ' + talos_secrets_file }}"
+
+- name: Generate registry mirror patch
+  ansible.builtin.template:
+    src: registry-mirror-patch.yaml.j2
+    dest: "{{ talos_config_dir }}/registry-mirror-patch.yaml"
+    mode: '0644'
+
+- name: Generate CNI patch
+  ansible.builtin.template:
+    src: cni-patch.yaml.j2
+    dest: "{{ talos_config_dir }}/cni-patch.yaml"
+    mode: '0644'
+
+- name: Generate Cilium manifest from Helm chart
+  ansible.builtin.command:
+    cmd: >
+      helm template cilium {{ offline_cilium_chart }}
+      --namespace kube-system
+      --set ipam.mode={{ cilium_config.ipam_mode }}
+      --set kubeProxyReplacement={{ cilium_config.kube_proxy_replacement | lower }}
+      --set image.repository={{ local_registry_mirror_prefix }}/cilium/cilium
+      --set image.tag=v{{ cilium_version }}
+      --set operator.image.repository={{ local_registry_mirror_prefix }}/cilium/operator-generic
+      --set operator.image.tag=v{{ cilium_version }}
+      --set hubble.relay.image.repository={{ local_registry_mirror_prefix }}/cilium/hubble-relay
+      --set hubble.relay.image.tag=v{{ cilium_version }}
+      --set hubble.ui.frontend.image.repository={{ local_registry_mirror_prefix }}/cilium/hubble-ui
+      --set hubble.ui.frontend.image.tag=v0.13.1
+      --set hubble.ui.backend.image.repository={{ local_registry_mirror_prefix }}/cilium/hubble-ui-backend
+      --set hubble.ui.backend.image.tag=v0.13.1
+      --set envoy.image.repository={{ local_registry_mirror_prefix }}/cilium/cilium-envoy
+      --set envoy.image.tag=v1.31.3-1736434280-d9c8b3ad18c67d43c24de78b6b74ed8b3e1eec5e
+      --set certgen.image.repository={{ local_registry_mirror_prefix }}/cilium/certgen
+      --set certgen.image.tag=v0.2.1
+      --set securityContext.capabilities.ciliumAgent="{CHOWN,KILL,NET_ADMIN,NET_RAW,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}"
+      --set securityContext.capabilities.cleanCiliumState="{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}"
+      --set cgroup.autoMount.enabled=false
+      --set cgroup.hostRoot=/sys/fs/cgroup
+      {% if cilium_config.kube_proxy_replacement %}
+      --set k8sServiceHost=localhost
+      --set k8sServicePort={{ cilium_config.kubeprism_port }}
+      {% endif %}
+      {% if cilium_config.gateway_api_enabled %}
+      --set gatewayAPI.enabled=true
+      --set gatewayAPI.enableAlpn=true
+      --set gatewayAPI.enableAppProtocol=true
+      {% endif %}
+      {% if cilium_config.hubble_enabled %}
+      --set hubble.enabled=true
+      --set hubble.relay.enabled=true
+      {% if cilium_config.hubble_ui_enabled %}
+      --set hubble.ui.enabled=true
+      {% endif %}
+      {% endif %}
+  register: cilium_manifest_output
+  changed_when: true
+
+- name: Save Cilium manifest to file
+  ansible.builtin.copy:
+    content: "{{ cilium_manifest_output.stdout }}"
+    dest: "{{ talos_config_dir }}/cilium-manifest.yaml"
+    mode: '0644'
+
+- name: Generate inline manifest patch
+  ansible.builtin.template:
+    src: inline-manifest-patch.yaml.j2
+    dest: "{{ talos_config_dir }}/inline-manifest-patch.yaml"
+    mode: '0644'
+  vars:
+    cilium_manifest: "{{ cilium_manifest_output.stdout }}"
+
+- name: Combine all patches for controlplane
+  ansible.builtin.shell:
+    cmd: |
+      cat {{ talos_config_dir }}/registry-mirror-patch.yaml > {{ talos_config_dir }}/controlplane-combined-patch.yaml
+      echo "---" >> {{ talos_config_dir }}/controlplane-combined-patch.yaml
+      cat {{ talos_config_dir }}/cni-patch.yaml >> {{ talos_config_dir }}/controlplane-combined-patch.yaml
+      echo "---" >> {{ talos_config_dir }}/controlplane-combined-patch.yaml
+      cat {{ talos_config_dir }}/inline-manifest-patch.yaml >> {{ talos_config_dir }}/controlplane-combined-patch.yaml
+  changed_when: true
+
+- name: Combine all patches for workers
+  ansible.builtin.shell:
+    cmd: |
+      cat {{ talos_config_dir }}/registry-mirror-patch.yaml > {{ talos_config_dir }}/worker-combined-patch.yaml
+      echo "---" >> {{ talos_config_dir }}/worker-combined-patch.yaml
+      cat {{ talos_config_dir }}/cni-patch.yaml >> {{ talos_config_dir }}/worker-combined-patch.yaml
+  changed_when: true
+
+- name: Generate Talos machine configurations
+  ansible.builtin.command:
+    cmd: >
+      talosctl gen config {{ cluster_name }} https://{{ cluster_endpoint }}:{{ cluster_endpoint_port }}
+      --with-secrets {{ talos_secrets_file }}
+      --config-patch-control-plane @{{ talos_config_dir }}/controlplane-combined-patch.yaml
+      --config-patch-worker @{{ talos_config_dir }}/worker-combined-patch.yaml
+      --output {{ talos_config_dir }}
+      --force
+  changed_when: true
+
+- name: Display generated files
+  ansible.builtin.debug:
+    msg:
+      - "=========================================="
+      - "Configuration Files Generated"
+      - "=========================================="
+      - "✓ Secrets: {{ talos_secrets_file }}"
+      - "✓ Control Plane Config: {{ talos_config_dir }}/controlplane.yaml"
+      - "✓ Worker Config: {{ talos_config_dir }}/worker.yaml"
+      - "✓ Talosconfig: {{ talos_config_dir }}/talosconfig"
+      - "✓ Cilium Manifest: {{ talos_config_dir }}/cilium-manifest.yaml"
+      - "=========================================="

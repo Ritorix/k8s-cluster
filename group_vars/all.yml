@@ -1,0 +1,70 @@
+---
+# Global configuration for Talos Kubernetes cluster
+
+# Cluster identification
+cluster_name: "talos-k8s"
+cluster_domain: "cluster.local"
+
+# Versions - update these as needed
+talos_version: "v1.8.3"
+kubernetes_version: "1.31.4"
+cilium_version: "1.18.0"
+
+# Kubernetes endpoint - for single control plane use first CP node IP
+# For HA, use load balancer VIP or DNS name
+cluster_endpoint: "{{ hostvars[groups['control_plane'][0]]['ansible_host'] }}"
+cluster_endpoint_port: 6443
+
+# Network configuration
+pod_cidr: "10.244.0.0/16"
+service_cidr: "10.96.0.0/12"
+
+# Node configuration
+install_disk: "/dev/sda"  # Common: /dev/sda, /dev/vda, /dev/nvme0n1
+
+# Network interface - leave empty for auto-detection
+# network_interface: "eth0"
+
+# DNS servers (optional, defaults to DHCP-provided)
+# dns_servers:
+#   - 1.1.1.1
+#   - 8.8.8.8
+
+# NTP servers (optional)
+# ntp_servers:
+#   - time.cloudflare.com
+
+# Talos system extensions (optional)
+# talos_system_extensions:
+#   - siderolabs/qemu-guest-agent
+
+# Cilium configuration
+cilium_config:
+  # Kube-proxy replacement via eBPF
+  kube_proxy_replacement: true
+  
+  # IPAM mode
+  ipam_mode: "kubernetes"
+  
+  # KubePrism configuration (Talos local API server proxy)
+  kubeprism_enabled: true
+  kubeprism_port: 7445
+  
+  # Gateway API support (optional)
+  gateway_api_enabled: false
+  
+  # Hubble observability (optional)
+  hubble_enabled: false
+  hubble_ui_enabled: false
+
+# Working directories
+talos_config_dir: "{{ playbook_dir }}/generated-configs"
+talos_secrets_file: "{{ talos_config_dir }}/secrets.yaml"
+talosconfig_file: "{{ talos_config_dir }}/talosconfig"
+kubeconfig_file: "{{ talos_config_dir }}/kubeconfig"
+
+# Timeouts and retries
+node_ready_timeout: 600  # seconds
+api_ready_timeout: 300   # seconds
+pod_ready_timeout: 600   # seconds
+retry_delay: 10          # seconds between retries

@@ -1,0 +1,119 @@
+---
+# Tasks for bootstrapping the Kubernetes cluster
+
+- name: Display bootstrap banner
+  ansible.builtin.debug:
+    msg: "Bootstrapping Kubernetes cluster..."
+
+- name: Check if cluster is already bootstrapped
+  ansible.builtin.command:
+    cmd: >
+      talosctl kubeconfig --force
+      --nodes {{ hostvars[groups['control_plane'][0]]['ansible_host'] }}
+      --talosconfig {{ talos_config_dir }}/talosconfig
+      {{ kubeconfig_file }}
+  register: kubeconfig_check
+  failed_when: false
+  changed_when: false
+
+- name: Set bootstrap needed flag
+  ansible.builtin.set_fact:
+    bootstrap_needed: "{{ kubeconfig_check.rc != 0 }}"
+
+- name: Display bootstrap status
+  ansible.builtin.debug:
+    msg: "{{ 'Cluster already bootstrapped, skipping bootstrap step' if not bootstrap_needed else 'Proceeding with cluster bootstrap' }}"
+
+- name: Wait for first control plane node to be ready for bootstrap
+  ansible.builtin.command:
+    cmd: >
+      talosctl health
+      --nodes {{ hostvars[groups['control_plane'][0]]['ansible_host'] }}
+      --talosconfig {{ talos_config_dir }}/talosconfig
+      --wait-timeout {{ node_ready_timeout }}s
+  register: health_check
+  retries: 3
+  delay: "{{ retry_delay }}"
+  until: health_check.rc == 0
+  when: bootstrap_needed
+  failed_when: false
+  changed_when: false
+
+- name: Bootstrap etcd on first control plane node
+  ansible.builtin.command:
+    cmd: >
+      talosctl bootstrap
+      --nodes {{ hostvars[groups['control_plane'][0]]['ansible_host'] }}
+      --talosconfig {{ talos_config_dir }}/talosconfig
+  when: bootstrap_needed
+  register: bootstrap_result
+  changed_when: true
+
+- name: Display bootstrap result
+  ansible.builtin.debug:
+    msg: "✓ Cluster bootstrapped successfully"
+  when: bootstrap_needed
+
+- name: Wait for Kubernetes API to become available
+  ansible.builtin.wait_for:
+    host: "{{ cluster_endpoint }}"
+    port: "{{ cluster_endpoint_port }}"
+    timeout: "{{ api_ready_timeout }}"
+    state: started
+  when: bootstrap_needed
+
+- name: Retrieve kubeconfig
+  ansible.builtin.command:
+    cmd: >
+      talosctl kubeconfig --force
+      --nodes {{ hostvars[groups['control_plane'][0]]['ansible_host'] }}
+      --talosconfig {{ talos_config_dir }}/talosconfig
+      {{ kubeconfig_file }}
+  changed_when: true
+
+- name: Set KUBECONFIG environment variable for subsequent tasks
+  ansible.builtin.set_fact:
+    ansible_env: "{{ ansible_env | combine({'KUBECONFIG': kubeconfig_file}) }}"
+
+- name: Wait for nodes to appear in Kubernetes
+  ansible.builtin.command:
+    cmd: kubectl get nodes --kubeconfig {{ kubeconfig_file }}
+  register: nodes_check
+  retries: 30
+  delay: "{{ retry_delay }}"
+  until: nodes_check.rc == 0
+  changed_when: false
+
+- name: Wait for all nodes to be Ready
+  ansible.builtin.shell:
+    cmd: |
+      kubectl get nodes --kubeconfig {{ kubeconfig_file }} -o json | \
+      jq -r '.items[] | select(.status.conditions[] | select(.type=="Ready" and .status!="True")) | .metadata.name'
+  register: not_ready_nodes
+  retries: 60
+  delay: "{{ retry_delay }}"
+  until: not_ready_nodes.stdout == ""
+  changed_when: false
+
+- name: Display node status
+  ansible.builtin.command:
+    cmd: kubectl get nodes --kubeconfig {{ kubeconfig_file }}
+  register: nodes_output
+  changed_when: false
+
+- name: Show current node status
+  ansible.builtin.debug:
+    msg: "{{ nodes_output.stdout_lines }}"
+
+- name: Display bootstrap summary
+  ansible.builtin.debug:
+    msg:
+      - "=========================================="
+      - "Cluster Bootstrap Complete"
+      - "=========================================="
+      - "✓ Kubernetes API: https://{{ cluster_endpoint }}:{{ cluster_endpoint_port }}"
+      - "✓ All nodes are Ready"
+      - "✓ Kubeconfig: {{ kubeconfig_file }}"
+      - ""
+      - "Cilium CNI is being deployed via inline manifests..."
+      - "=========================================="

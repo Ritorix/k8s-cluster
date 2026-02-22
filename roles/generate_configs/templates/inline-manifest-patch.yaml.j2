@@ -1,0 +1,14 @@
+---
+# Patch for inline Cilium manifest
+cluster:
+  inlineManifests:
+    - name: cilium
+      contents: |
+        ---
+        # Namespace must be created first
+        apiVersion: v1
+        kind: Namespace
+        metadata:
+          name: kube-system
+        ---
+{{ cilium_manifest | indent(8, first=False) }}
