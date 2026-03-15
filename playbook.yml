@@ -50,6 +50,15 @@
   roles:
     - install_cilium
 
+- name: Install Observability Stack (Prometheus/Grafana + Splunk)
+  hosts: localhost
+  gather_facts: false
+  tags: [observability]
+  vars_files:
+    - group_vars/vault.yml
+  roles:
+    - observability
+
 - name: Validate cluster deployment
   hosts: localhost
   gather_facts: false

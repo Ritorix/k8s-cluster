@@ -80,7 +80,15 @@ registry_ca_cert: "{{ playbook_dir }}/files/registry-ca.crt"
 
 ## Step 2: Download CLI Tools
 
-On a connected machine, download for your OS:
+> 💡 Tip: You can automate this step using the bundled script:
+>
+> ```bash
+> ./scripts/fetch-airgap-assets.sh ./airgap-assets
+> ```
+>
+> Copy the resulting `airgap-assets` directory into the air-gapped environment.
+>
+> On a connected machine, download for your OS:
 
 ### Talosctl
 

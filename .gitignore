@@ -33,3 +33,6 @@ Thumbs.db
 *.tmp
 *.bak
 *.orig
+
+# Vault secrets (optional)
+group_vars/vault.yml

@@ -20,6 +20,9 @@
       --set operator.image.repository={{ operator_image.repository }} \
       --set operator.image.tag={{ operator_image.tag }} \
       --set operator.image.pullPolicy=IfNotPresent \
+      --set hubble.enabled={{ cilium_install_settings.enable_hubble }} \
+      --set hubble.relay.enabled={{ cilium_install_settings.enable_hubble_relay }} \
+      --set hubble.ui.enabled={{ cilium_install_settings.enable_hubble_ui }} \
       --set hubble.relay.image.repository={{ hubble_relay_image.repository }} \
       --set hubble.relay.image.tag={{ hubble_relay_image.tag }} \
       --set hubble.ui.backend.image.repository={{ hubble_ui_backend_image.repository }} \
@@ -30,6 +33,7 @@
       --set envoy.image.tag={{ envoy_image.tag }} \
       --set certgen.image.repository={{ certgen_image.repository }} \
       --set certgen.image.tag={{ certgen_image.tag }} \
+      --set gatewayAPI.enabled={{ cilium_install_settings.enable_gateway_api }} \
       --set kubeProxyReplacement={{ cilium_install_settings.kube_proxy_replacement }} \
       --set k8sServiceHost={{ cilium_install_settings.k8s_service_host }} \
       --set k8sServicePort={{ cilium_install_settings.k8s_service_port }} \

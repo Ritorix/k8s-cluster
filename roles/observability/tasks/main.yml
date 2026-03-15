@@ -1,0 +1,110 @@
+---
+# Role: observability
+# Install Prometheus + Grafana + optional Splunk logging via Helm.
+
+- name: Install observability stack when enabled
+  when: observability_enabled | default(false) | bool
+  block:
+    - name: Ensure helm is installed
+      command: helm version --short
+      register: helm_check
+      failed_when: helm_check.rc != 0
+
+    - name: Ensure kubectl is installed
+      command: kubectl version --client --short
+      register: kubectl_check
+      failed_when: kubectl_check.rc != 0
+
+    - name: Add Helm repositories (internet-connected only)
+      when: observability.chart_dir | default('') == ''
+      shell: |
+        set -e
+        helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+        helm repo add splunk https://splunk.github.io/splunk-connect-for-kubernetes
+        helm repo update
+      args:
+        warn: false
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: Create monitoring namespace
+      shell: |
+        set -e
+        kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+      args:
+        warn: false
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: Install/upgrade Prometheus + Grafana (kube-prometheus-stack)
+      shell: |
+        set -e
+        chart_source=""
+        if [ -n "{{ observability.chart_dir | default('') }}" ]; then
+          chart_source="{{ observability.chart_dir | default('') }}/kube-prometheus-stack-{{ observability.prometheus.chart_version | default('45.6.0') }}.tgz"
+        else
+          chart_source="prometheus-community/kube-prometheus-stack"
+        fi
+
+        helm upgrade --install kube-prometheus-stack "${chart_source}" \
+          --namespace monitoring \
+          --create-namespace \
+          --set "prometheus.prometheusSpec.retention=\"{{ observability.prometheus.retention | default('15d') }}\"" \
+          --set "prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage=\"{{ observability.prometheus.storage | default('10Gi') }}\"" \
+          --set "grafana.adminUser=\"{{ observability.grafana.admin_user | default('admin') }}\"" \
+          --set "grafana.adminPassword=\"{{ observability.grafana.admin_password | default('admin') }}\"" \
+          --set "grafana.service.type=ClusterIP" \
+          --set "grafana.persistence.enabled={{ observability.grafana.persistence | default(true) | ternary('true','false') }}" \
+          --set "grafana.persistence.size=\"{{ observability.grafana.persistence_size | default('5Gi') }}\""
+      args:
+        warn: false
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: Install/upgrade Splunk Connect for Kubernetes (optional)
+      when: observability.splunk_enabled | default(false) | bool
+      shell: |
+        set -e
+
+        splunk_token="{{ observability.splunk.hec_token | default(splunk_hec_token | default('')) }}"
+        if [ -z "${splunk_token}" ]; then
+          echo "ERROR: Splunk HEC token is not set (observability.splunk.hec_token or splunk_hec_token)" >&2
+          exit 1
+        fi
+
+        chart_source=""
+        if [ -n "{{ observability.chart_dir | default('') }}" ]; then
+          chart_source="{{ observability.chart_dir | default('') }}/splunk-connect-for-kubernetes-{{ observability.splunk.chart_version | default('2.15.0') }}.tgz"
+        else
+          chart_source="splunk/splunk-connect-for-kubernetes"
+        fi
+
+        helm upgrade --install splunk-connect "${chart_source}" \
+          --namespace monitoring \
+          --set "splunk.hec.host=\"{{ observability.splunk.hec_host }}\"" \
+          --set "splunk.hec.port={{ observability.splunk.hec_port | default(8088) }}" \
+          --set "splunk.hec.token=\"${splunk_token}\"" \
+          --set "splunk.hec.protocol=\"{{ observability.splunk.hec_protocol | default('https') }}\"" \
+          --set "splunk.forwarder.hecToken=\"${splunk_token}\"" \
+          --set "splunk.forwarder.hecEndpoint=\"/services/collector/event\"" \
+          --set "splunk.connectForKubernetes.enable=true"
+      args:
+        warn: false
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: Apply default Prometheus alerting rules
+      when: observability.default_alerts | default(true) | bool
+      shell: |
+        set -e
+        kubectl apply -f "{{ playbook_dir }}/files/observability/prometheus-rules.yaml"
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: Apply default Grafana dashboard
+      when: observability.default_dashboards | default(true) | bool
+      shell: |
+        set -e
+        kubectl apply -f "{{ playbook_dir }}/files/observability/grafana-dashboard-cm.yaml"
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"

@@ -29,6 +29,7 @@ cilium_install_settings:
   k8s_service_port: "7445"
   tunnel: "disabled"
   ipam_mode: "kubernetes"
+  enable_gateway_api: "true"  # Enables Kubernetes Gateway API support
 ```
 
 ### Easy Image Updates

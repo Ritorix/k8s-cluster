@@ -65,11 +65,43 @@ cilium_config:
   kubeprism_port: 7445
   
   # Gateway API support (optional)
-  gateway_api_enabled: false
+  gateway_api_enabled: true
   
   # Hubble observability (optional)
   hubble_enabled: true
   hubble_ui_enabled: false
+
+# Secrets (store in Ansible Vault)
+splunk_hec_token: ""
+
+# Observability stack
+observability_enabled: false  # Set to true to deploy Prometheus/Grafana and optional Splunk logging
+observability:
+  # Optional local chart directory for air-gapped installs
+  chart_dir: ""  # e.g. /path/to/airgap-assets/charts
+
+  prometheus:
+    chart_version: "45.6.0"
+    retention: "15d"
+    storage: "10Gi"
+
+  grafana:
+    admin_user: "admin"
+    admin_password: "admin"
+    persistence: true
+    persistence_size: "5Gi"
+
+  # Default dashboards / alerts (basic examples)
+  default_dashboards: true
+  default_alerts: true
+
+  splunk_enabled: false
+  splunk:
+    chart_version: "2.15.0"
+    hec_host: "splunk.example.com"
+    hec_port: 8088
+    hec_protocol: "https"
+    hec_token: ""
 
 # Working directories
 talos_config_dir: "/opt/talos/"

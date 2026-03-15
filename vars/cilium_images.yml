@@ -110,4 +110,4 @@ cilium_install_settings:
   enable_hubble: "false"
   enable_hubble_relay: "false"
   enable_hubble_ui: "false"
-  enable_gateway_api: "false"
+  enable_gateway_api: "true"  # Enable Gateway API support for Cilium as the CNI

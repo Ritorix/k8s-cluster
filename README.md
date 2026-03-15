@@ -31,6 +31,39 @@ Choose the deployment mode that fits your environment:
 | **Network Access** | Public registries | Isolated |
 | **Best For** | Most environments | Secure/isolated networks |
 
+## Observability & Logging (Optional)
+
+This playbook can optionally deploy a full observability stack:
+
+- **Prometheus + Grafana** (via the `kube-prometheus-stack` Helm chart)
+- **Splunk Connect for Kubernetes** (forward cluster logs/metrics/events to Splunk)
+- **Cilium Gateway API** support is enabled by default (see `group_vars/all.yml`)
+
+### Enable observability
+
+Edit `group_vars/all.yml`:
+
+```yaml
+observability_enabled: true
+observability:
+  splunk_enabled: false
+  splunk:
+    hec_host: "splunk.example.com"
+    hec_token: "<your-token>"
+```
+
+Deploy (or re-run the playbook):
+
+```bash
+ansible-playbook -i inventory/hosts.yml playbook.yml --tags observability
+```
+
+If you only want to install the observability stack without re-running the full deployment, run:
+
+```bash
+ansible-playbook -i inventory/hosts.yml playbook.yml --tags observability
+```
+
 ### Internet-Connected (Default)
 - Images pulled directly from public registries (quay.io, registry.k8s.io, ghcr.io)
 - No local registry required
@@ -106,12 +139,20 @@ airgap_enabled: true
 local_registry_url: "registry.local:5000"
 ```
 
-**2. Mirror images** to your local registry:
+**2. Download required tools, Helm charts, and assets** on an internet-connected machine and transfer to the air-gapped environment:
+```bash
+./scripts/fetch-airgap-assets.sh ./airgap-assets
+# Copy ./airgap-assets to the air-gapped controller and install the binaries
+```
+
+> The script now downloads offline Helm chart bundles (Cilium + Prometheus/Grafana + Splunk) into `./airgap-assets/charts`.
+
+**3. Mirror images** to your local registry:
 ```bash
 ./scripts/mirror-all-images.sh registry.local:5000
 ```
 
-**3. Configure inventory** with your node IPs in `inventory/hosts.yml`
+**4. Configure inventory** with your node IPs in `inventory/hosts.yml`
 
 **4. Deploy cluster**:
 ```bash
